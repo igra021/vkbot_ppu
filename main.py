@@ -1,23 +1,60 @@
 # main.py
+# Запуск бота
 
-from config import create_bot
 import asyncio
+import sys
+import signal
+from loguru import logger
+from vkbottle import VKAPIError
+from config import labeler
+from handlers import chat_labeler
+from create_bot import create_bot
+
+
+# загружаю лабелер (группу хендлеров)
+labeler.load(chat_labeler)
+
+
+def signal_handler(signum, frame):
+    """Обработчик сигналов"""
+    logger.info(f"🛑 Получен сигнал остановки {signum} в точке {frame}")
+    # Здесь можно добавить закрытие БД
+    # db.close()
 
 async def main():
-       
-    bot = create_bot()
 
-    @bot.on.message()
-    async def handler(message):
-        print(f"Сообщение: {message.text}")
-        user = await bot.api.users.get(user_ids=message.from_id)
-        if user:
-            await message.answer(f"Привет, {user[0].first_name}!")
-        else:
-            await message.answer("Привет!")
+    # Регистрируем обработчик сигнала
+    signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
+    signal.signal(signal.SIGTERM, signal_handler)  # Завершение от системы
     
-    print("Бот запущен")
-    await bot.run_polling()
+    # Логирование - Отключаем DEBUG-уровень
+    logger.remove()
+    logger.add(sys.stderr, level="INFO")
+    
+    bot = create_bot()
+ 
+    try:
+        logger.info("🤖 Бот запущен")
+        await bot.run_polling()
+    except KeyboardInterrupt:
+        logger.info("🛑 Бот остановлен пользователем")
+    except Exception as e:
+        logger.error(f"❌ Ошибка: {e}")  
+    except VKAPIError as e:
+        logger.error(f"❌ Ошибка VKAPI: {e.code}")              
+    finally:
+        logger.info("🧹 Выполняем очистку перед выходом...")
+        # Например: db.close()
+        logger.info("✅ Бот успешно остановлен")
 
+
+# Стандартный запуск
 if __name__ == "__main__":
     asyncio.run(main())
+
+# Запуск для Колаб
+"""
+import nest_asyncio
+nest_asyncio.apply()  # Патчим цикл событий
+asyncio.get_event_loop().run_until_complete(main())    
+"""

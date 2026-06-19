@@ -15,11 +15,16 @@ state_dispenser = BuiltinStateDispenser()
 
 # параметры из .env
 api_key = os.getenv('OPENAI_API_KEY')
+open_ai_model = os.getenv('OPENAI_MODEL')
+base_url = os.getenv('OPENAI_URL')
+temperature = os.getenv('OPENAI_TEMPERATURE')
+client = OpenAI(api_key=api_key, base_url=base_url,)
+
 vk_token = os.getenv('VK_token')
 proxy = os.getenv('proxy')
 vk_admin = os.getenv('vk_admin')
-base_url = os.getenv('OPENAI_URL')
-client = OpenAI(api_key=api_key, base_url=base_url,)
+
+
 
 
 

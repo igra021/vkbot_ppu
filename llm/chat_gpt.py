@@ -2,37 +2,39 @@
 # обработка ответов
 
 from config import client, open_ai_model, temperature
-from bd.func_bd import get_history
+# from bd.func_bd import get_history
 from .prompts import system_prompt
-from .rag import rag
+# from .rag import rag
 
 # история диалога
 history = [{"role": "system", "content": system_prompt}]
 
+async def chat_gpt(user_message, verbose=False):
+    
+    # добавляем в историю
+    history.append({"role": "user", "content": user_message})
 
-
-async def chat_gpt(message):
     # поиск ответа в RAG
     #answer = rag()
     
-    # история диалога
-    """
-    history = [
-        {"role": "user", "content": "Здравствуйте! Меня интересует утепление стен."},
-        {"role": "assistant", "content": "Здравствуйте! Мы используем для этого напыляемый пенополиуретан. Это эффективно и долговечно."},
-        {"role": "user", "content": "А сколько это стоит за квадратный метр?"}
-    ]
-    """
-
     # формирование ответа на сообщение клиента
-    response = client.chat.completions.create(
+    response = await client.chat.completions.create(
         model=open_ai_model,
         messages=history,
         temperature=temperature,
     )
-    result = response.choices[0].message.content
+    answer = response.choices[0].message.content
+    result_split = answer.split('splitter')
+    if len(result_split) > 1:
+        result = result_split[-1].strip()
+    else:
+        result = result_split[0].strip()
 
     # добавляем в историю
-    history.append
+    history.append({"role": "assistant", "content": result})
+    if verbose:
+        print('💤 Клиент: ', user_message)
+        print('✅ Ответ ЛЛМ: ', answer)
+        #print('📌 ', history[1::])
 
     return result

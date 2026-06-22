@@ -20,6 +20,7 @@ def signal_handler(signum, frame):
     logger.info(f"🛑 Получен сигнал остановки {signum} в точке {frame}")
     # Здесь можно добавить закрытие БД
     # db.close()
+    exit(0)
 
 async def main():
 
@@ -37,7 +38,7 @@ async def main():
         logger.info("🤖 Бот запущен")
         await bot.run_polling()
     except KeyboardInterrupt:
-        logger.info("🛑 Бот остановлен пользователем")
+        logger.info(f"❌ Ctrl+C Остановка пользователем") 
     except Exception as e:
         logger.error(f"❌ Ошибка: {e}")  
     except VKAPIError as e:

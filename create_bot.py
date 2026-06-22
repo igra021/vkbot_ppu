@@ -32,3 +32,5 @@ def create_bot():
     )
     
     return bot
+
+# bot = create_bot()

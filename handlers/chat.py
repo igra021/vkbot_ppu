@@ -42,4 +42,4 @@ async def chat(message: Message):
     if attachments:
         result += "\n✅ Ваши фото и видео из сообщения пересланы администратору."
 
-    return result
+    await message.answer(result)

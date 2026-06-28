@@ -31,7 +31,7 @@ async def chat_gpt(user_message, verbose=False):
         result = result_split[0].strip()
 
     # добавляем в историю
-    history.append({"role": "assistant", "content": result})
+    history.append({"role": "assistant", "content": answer})
     if verbose:
         print('💤 Клиент: ', user_message)
         print('✅ Ответ ЛЛМ: ', answer)

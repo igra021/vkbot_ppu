@@ -53,9 +53,3 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 
-# Запуск для Колаб
-"""
-import nest_asyncio
-nest_asyncio.apply()  # Патчим цикл событий
-asyncio.get_event_loop().run_until_complete(main())    
-"""

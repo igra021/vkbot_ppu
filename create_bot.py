@@ -28,7 +28,7 @@ def create_bot():
     bot = Bot(
         api=api,
         labeler=labeler,
-        state_dispenser=state_dispenser,
+        state_dispenser=state_dispenser
     )
     
     return bot

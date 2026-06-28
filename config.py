@@ -19,6 +19,7 @@ open_ai_model = os.getenv('OPENAI_MODEL')
 base_url = os.getenv('OPENAI_URL')
 temperature = float(os.getenv('OPENAI_TEMPERATURE'))
 client = AsyncOpenAI(api_key=api_key, base_url=base_url,)
+embeddings_model=os.getenv(Embeddings_model)
 
 vk_token = os.getenv('VK_token')
 proxy = os.getenv('proxy')

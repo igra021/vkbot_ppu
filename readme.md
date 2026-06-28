@@ -92,7 +92,7 @@ vk-bot/
 │
 │
 └── data/                   # Данные
-    └── answers.csv         # База знаний для RAG
+    └── answers.xlsx        # База знаний для RAG
 
 
 ## Архитектура

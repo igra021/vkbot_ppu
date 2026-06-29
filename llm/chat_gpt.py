@@ -1,5 +1,6 @@
 # llm\chat_gpt.py
 # обработка ответов
+from loguru import logger
 import json
 from config import client, open_ai_model, temperature
 # from bd.func_bd import get_history

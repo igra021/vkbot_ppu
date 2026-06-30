@@ -48,7 +48,7 @@ class RAGSystem:
             logger.error(f"Ошибка: {e}. Файл XLSX: {file_path}")
             raise
 
-    def search(self, query: str, object_type: str = None, top_k: int=5) -> list:
+    def search(self, query: str, object_type: str, top_k: int=3) -> list:
         """
         Поиск чанков по запросу query и типу объекта object_type
         Args:
@@ -69,25 +69,20 @@ class RAGSystem:
                 filter=filter_param,  # ← здесь используется metadata
                 k=top_k
             )
-            return results
+            if results:
+                # Берём самый релевантный ответ
+                best = results[0]
+                return best.metadata.get('answer', best.page_content)
+            else:   
+                return "not_found"
         
         except Exception as e:
             logger.error(f"❌ Ошибка поиска: {e}")
             return []
 
-    def get_answer(self, query: str, object_type) -> str:
-        """
-        Получить ответ на вопрос
-        """ 
+        
+        
+        
 
-        # 2. Ищем похожие чанки
-        results = self.search(query, object_type)
-        
-        if not results:
-            return "К сожалению, я не нашел информации по вашему вопросу."
-        
-        # 3. Берём самый релевантный ответ
-        best = results[0]
-        return best.metadata.get('answer', best.page_content)
     
    

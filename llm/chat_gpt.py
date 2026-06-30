@@ -1,14 +1,13 @@
 # llm\chat_gpt.py
-# обработка ответов
+# обработка ответов LLM, Rag
+
 from loguru import logger
 import json
-from config import client, open_ai_model, temperature
+from config import client, open_ai_model, temperature, rag_file
 # from bd.func_bd import get_history
 from .prompts import system_prompt
-# from .rag import rag
 
-# список агентов которым нужен РАГ
-rag_agents = ['Агент-консультант','Агент-презентатор','Агент-закрытия возражений']
+rag = None
 
 # история диалога
 history = [{"role": "system", "content": system_prompt}]
@@ -28,6 +27,7 @@ async def chat_gpt(user_message, verbose=False):
 
     # добавляем ответ ЛЛМ в историю
     history.append({"role": "assistant", "content": answer})
+
     if verbose:
         print('✅ Ответ ЛЛМ: ', answer)
         #print('📌 ', history[1::])
@@ -37,9 +37,17 @@ async def chat_gpt(user_message, verbose=False):
         agent_message = data.get("Сообщение агента", answer)
         agent = data.get("Агент", "")
 
-        if agent in rag_agents:
+        if agent == 'Агент-консультант' and rag:
             # ищем ответ в раг
+            rag_answer = rag.get_answer(user_message)
             return agent_message
+        
+        elif agent == 'Агент-презентатор':            
+            return agent_message
+        
+        elif agent == 'Агент-закрытия возражений':            
+            return agent_message
+
         else:    
             return agent_message
                     

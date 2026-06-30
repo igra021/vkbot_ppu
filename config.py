@@ -21,6 +21,8 @@ temperature = float(os.getenv('OPENAI_TEMPERATURE'))
 client = AsyncOpenAI(api_key=api_key, base_url=base_url,)
 embeddings_model=os.getenv('Embeddings_model')
 
+rag_file = os.getenv('rag_file')
+
 vk_token = os.getenv('VK_token')
 proxy = os.getenv('proxy')
 vk_admin = int(os.getenv('vk_admin'))

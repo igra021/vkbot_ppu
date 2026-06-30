@@ -6,13 +6,11 @@ import sys
 import signal
 from loguru import logger
 from vkbottle import VKAPIError
-from config import labeler
+from config import labeler, rag_file
 from handlers import chat_labeler
 from create_bot import create_bot
+from llm.rag import RAGSystem
 
-
-# загружаю лабелер (группу хендлеров)
-labeler.load(chat_labeler)
 
 
 def signal_handler(signum, frame):
@@ -31,9 +29,23 @@ async def main():
     # Логирование - Отключаем DEBUG-уровень
     logger.remove()
     logger.add(sys.stderr, level="INFO")
+
+    # загружаю RAG
+    try:
+        rag = RAGSystem(rag_file)
+        logger.info('RAG загружен')
+    except Exception as e:
+        logger.error(f'Ошибка создания RAG {e}')
+
+    # внедряю RAG в ЛЛМ через атрибут rag
+    import llm.chat_gpt
+    llm.chat_gpt.rag = rag
     
+    # загружаю лабелер (группу хендлеров)
+    labeler.load(chat_labeler)
+
+    # создаю и запускаю бота
     bot = create_bot()
- 
     try:
         logger.info("🤖 Бот запущен")
         await bot.run_polling()

@@ -1,4 +1,4 @@
-# llm/text_cleaner.py
+# llm\text_cleaner.py
 # очистка текста сообщения клиента от мусора
 
 import re

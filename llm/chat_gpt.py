@@ -22,6 +22,7 @@ async def chat_gpt(user_message, verbose=False):
         model=open_ai_model,
         messages=history,
         temperature=temperature,
+        response_format={"type": "json_object"} 
     )
     answer = response.choices[0].message.content
 
@@ -29,8 +30,9 @@ async def chat_gpt(user_message, verbose=False):
     history.append({"role": "assistant", "content": answer})
 
     if verbose:
-        # print('✅ Ответ ЛЛМ: ', answer)
+        print('✅ Ответ ЛЛМ: ', answer)
         #print('📌 ', history[1::])
+
 
     try:
         data = json.loads(answer)
@@ -42,19 +44,13 @@ async def chat_gpt(user_message, verbose=False):
 
         if agent == 'Агент-консультант' and rag:
             # ищем ответ в раг
-            rag_answer = rag.get_answer(user_message, object_type)
+            rag_answer = 'Ответ РАГ: ' + rag.search(user_message, object_type)
             return rag_answer
         
-        elif agent == 'Агент-презентатор':            
-            return agent_message
-        
-        elif agent == 'Агент-закрытия возражений':            
-            return agent_message
-
         else:    
             return agent_message
                     
     except json.JSONDecodeError:
         # Если ответ не в JSON, возвращаем как есть
         logger.warning(f"LLM вернул не JSON: {answer}")
-        return answer
+        return "LLM вернул не JSON:" + answer

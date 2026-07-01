@@ -30,12 +30,16 @@ async def main():
     logger.remove()
     logger.add(sys.stderr, level="INFO")
 
-    # загружаю RAG
+    # 1. Инициализируем RAG с проверкой
     try:
         rag = RAGSystem(rag_file)
-        logger.info('RAG загружен')
+        if rag.is_ready():
+            logger.info("✅ RAG-система загружена и готова к работе")
+        else:
+            logger.warning("⚠️ RAG-система загружена, но база данных недоступна")
     except Exception as e:
-        logger.error(f'Ошибка создания RAG {e}')
+        logger.error(f"❌ Критическая ошибка загрузки RAG: {e}")
+        rag = None
 
     # внедряю RAG в ЛЛМ через атрибут rag
     import llm.chat_gpt

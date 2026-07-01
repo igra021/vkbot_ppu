@@ -22,8 +22,16 @@ class RAGSystem:
             openai_api_base=base_url,
             openai_api_key=api_key
         )
-        self.db = None
-        self._build_index(file_path)
+        # Пытаемся создать индекс, но не падаем при ошибке
+        try:
+            self.db = self._build_index(file_path)
+            if self.db is not None:
+                logger.info(f"✅ RAGSystem инициализирован. Документов: {self.db.index.ntotal}")
+            else:
+                logger.warning("⚠️ RAGSystem инициализирован без базы данных (db = None)")
+        except Exception as e:
+            logger.error(f"❌ Ошибка инициализации RAGSystem: {e}")
+            self.db = None
 
 
     def _build_index(self, file_path):
@@ -42,6 +50,7 @@ class RAGSystem:
                 )
                 documents.append(doc)
             db = FAISS.from_documents(documents, self.embeddings)
+            logger.info(f"✅ Индекс создан: {len(documents)} документов")
             return db
 
         except Exception as e:
@@ -64,8 +73,8 @@ class RAGSystem:
             if object_type:
                 filter_param['object'] = object_type
                 
-                if verbose:
-                    logger.info(f"🔍 Поиск с фильтром: object={object_type}")
+                logger.info(f"Вопрос: {query}")
+                logger.info(f"🔍 Поиск с фильтром: object={object_type}")
 
             results = self.db.similarity_search(
                 query,
@@ -85,7 +94,9 @@ class RAGSystem:
             logger.error(f"❌ Ошибка поиска: {e}")
             return []
 
-        
+    def is_ready(self) -> bool:
+        """Проверяет, готова ли RAG к работе"""
+        return self.db is not None   
         
         
 

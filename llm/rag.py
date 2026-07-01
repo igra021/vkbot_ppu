@@ -1,13 +1,13 @@
 # llm\rag.py 
 # функции работы с RAG
 
-from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain.schema import Document
+from langchain_core.documents import Document
 import pandas as pd
 from loguru import logger
 
-from config import api_key, embeddings_model, base_url
+from config import api_key, embeddings_model, base_url, verbose
 
 class RAGSystem:
     """
@@ -63,7 +63,10 @@ class RAGSystem:
             filter_param = {}
             if object_type:
                 filter_param['object'] = object_type
-                logger.debug(f"🔍 Поиск с фильтром: object={object_type}")
+                
+                if verbose:
+                    logger.info(f"🔍 Поиск с фильтром: object={object_type}")
+
             results = self.db.similarity_search(
                 query,
                 filter=filter_param,  # ← здесь используется metadata
@@ -72,6 +75,8 @@ class RAGSystem:
             if results:
                 # Берём самый релевантный ответ
                 best = results[0]
+                if verbose:
+                    logger.info(f"🔍 Поиск с фильтром: object={object_type}")
                 return best.metadata.get('answer', best.page_content)
             else:   
                 return "not_found"

@@ -31,24 +31,28 @@ async def chat_gpt(user_message, verbose=False):
 
     if verbose:
         print('✅ Ответ ЛЛМ: ', answer)
-        #print('📌 ', history[1::])
+        # print('📌 ', history)
 
 
     try:
         data = json.loads(answer)
         agent_message = data.get("Сообщение агента", answer)
+        
         object_type = data.get("Конструктивная часть", "")
         agent = data.get("Агент", "")
         if verbose:
             logger.info(f"Агент: {agent}")
 
+        """
         if agent == 'Агент-консультант' and rag:
             # ищем ответ в раг
             rag_answer = 'Ответ РАГ: ' + rag.search(user_message, object_type)
             return rag_answer
         
         else:    
-            return agent_message
+        """
+        return agent_message
+
                     
     except json.JSONDecodeError:
         # Если ответ не в JSON, возвращаем как есть

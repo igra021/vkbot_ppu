@@ -4,7 +4,8 @@
 from vkbottle.api import API
 from vkbottle import Bot
 from vkbottle.http import AiohttpClient
-from config import state_dispenser, labeler
+from config import labeler
+#, state_dispenser 
 import aiohttp
 from config import proxy, vk_token
 
@@ -28,7 +29,7 @@ def create_bot():
     bot = Bot(
         api=api,
         labeler=labeler,
-        state_dispenser=state_dispenser
+        #state_dispenser=state_dispenser,
     )
     
     return bot

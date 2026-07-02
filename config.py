@@ -11,7 +11,7 @@ from vkbottle.bot import BotLabeler
 load_dotenv()
 
 labeler = BotLabeler()
-state_dispenser = BuiltinStateDispenser()
+#state_dispenser = BuiltinStateDispenser()
 
 # параметры из .env
 api_key = os.getenv('OPENAI_API_KEY')

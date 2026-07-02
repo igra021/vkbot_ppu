@@ -26,7 +26,7 @@ async def chat_gpt(user_message, verbose=False):
     )
     answer = response.choices[0].message.content
 
-    # добавляем ответ ЛЛМ в историю
+    # добавляем вопрос ЛЛМ в историю
     history.append({"role": "assistant", "content": answer})
 
     if verbose:

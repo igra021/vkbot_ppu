@@ -33,15 +33,23 @@ async def chat_gpt(user_message, verbose=False):
         print('✅ Ответ ЛЛМ: ', answer)
         # print('📌 ', history)
 
-
     try:
         data = json.loads(answer)
-        agent_message = data.get("Сообщение агента", answer)
+        agent_command = data["Агент-аналитик"]['Следующий шаг']
         
-        object_type = data.get("Конструктивная часть", "")
-        agent = data.get("Агент", "")
-        if verbose:
-            logger.info(f"Агент: {agent}")
+        if agent_command.startswith('Агент-выявления потребностей'):
+            agent_message = data["Агент-выявления потребностей"]['Сообщение']
+
+        if agent_command.startswith('Агент-консультант'):
+            agent_message = data["Агент-консультант"]['Сообщение']
+
+        if agent_command.startswith('Агент-презентатор'):
+            agent_message = data["Агент-презентатор"]['Сообщение']            
+
+        if agent_command.startswith('Агент-закрытия возражений'):
+            agent_message = data["Агент-закрытия возражений"]['Сообщение']   
+
+        
 
         """
         if agent == 'Агент-консультант' and rag:

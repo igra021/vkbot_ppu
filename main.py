@@ -9,7 +9,7 @@ from vkbottle import VKAPIError
 from config import labeler, rag_file
 from handlers import chat_labeler
 from create_bot import create_bot
-# from llm.rag import RAGSystem
+from llm.rag import RAGSystem
 
 
 
@@ -29,7 +29,7 @@ async def main():
     # Логирование - Отключаем DEBUG-уровень
     logger.remove()
     logger.add(sys.stderr, level="INFO")
-    """
+
     # 1. Инициализируем RAG с проверкой
     try:
         rag = RAGSystem(rag_file)
@@ -44,7 +44,7 @@ async def main():
     # внедряю RAG в ЛЛМ через атрибут rag
     import llm.chat_gpt
     llm.chat_gpt.rag = rag
-    """
+ 
     # загружаю лабелер (группу хендлеров)
     labeler.load(chat_labeler)
 

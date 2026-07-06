@@ -49,6 +49,8 @@ async def chat_gpt(user_message, verbose=False):
         if agent_command.startswith('Агент-закрытия возражений'):
             agent_message = data["Агент-закрытия возражений"]['Сообщение']   
 
+        if agent_command.startswith('Агент-тип клиента'):
+            agent_message = data["Агент-тип клиента"]['Сообщение']  
         
 
         """

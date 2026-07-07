@@ -44,7 +44,6 @@ class RAGSystem:
                 doc = Document(
                     page_content = row["Вопрос"],
                     metadata = {
-                        "object": row["Объект"],
                         "answer": row["Ответ"]
                     }
                 )
@@ -57,41 +56,33 @@ class RAGSystem:
             logger.error(f"Ошибка: {e}. Файл XLSX: {file_path}")
             raise
 
-    def search(self, query: str, object_type: str, top_k: int=3) -> list:
+    def search(self, query: str, top_k: int=1) -> list:
         """
         Поиск чанков по запросу query и типу объекта object_type
         Args:
             query: Запрос пользователя
-            object_type: Фильтр по объекту утепления (чердак/стены/пол)
             top_k: Количество результатов
         Returns:
             list: Найденные документы с метаданными
         """
 
-        try:
-            filter_param = {}
-            if object_type:
-                filter_param['object'] = object_type
-                
-                logger.info(f"Вопрос: {query}")
-                logger.info(f"🔍 Поиск с фильтром: object={object_type}")
-
+        try:       
+            logger.info(f"Вопрос: {query}")
             results = self.db.similarity_search(
                 query,
-                filter=filter_param,  # ← здесь используется metadata
                 k=top_k
             )
             if results:
                 # Берём самый релевантный ответ
                 best = results[0]
                 if verbose:
-                    logger.info(f"🔍 Поиск с фильтром: object={object_type}")
+                    print('------ RAG: ', best.metadata.get('answer', best.page_content))
                 return best.metadata.get('answer', best.page_content)
             else:   
-                return "not_found"
+                return None
         
         except Exception as e:
-            logger.error(f"❌ Ошибка поиска: {e}")
+            logger.error(f"❌ Ошибка поиска в RAG: {e}")
             return []
 
     def is_ready(self) -> bool:

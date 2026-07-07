@@ -3,14 +3,25 @@
 
 from loguru import logger
 import json
-from config import client, open_ai_model, temperature, rag_file
+from config import client, open_ai_model, temperature
 # from bd.func_bd import get_history
-from .prompts import system_prompt
+from .prompts import system_prompt, consultant_prompt
 
 rag = None
 
 # история диалога
 history = [{"role": "system", "content": system_prompt}]
+
+# LLM
+async def get_answer_llm(history):
+    response = await client.chat.completions.create(
+        model=open_ai_model,
+        messages=history,
+        temperature=temperature,
+        response_format={"type": "json_object"} 
+    )
+    return response.choices[0].message.content
+
 
 async def chat_gpt(user_message, verbose=False):
     
@@ -18,16 +29,8 @@ async def chat_gpt(user_message, verbose=False):
     history.append({"role": "user", "content": user_message})
     
     # формирование ответа на сообщение клиента
-    response = await client.chat.completions.create(
-        model=open_ai_model,
-        messages=history,
-        temperature=temperature,
-        response_format={"type": "json_object"} 
-    )
-    answer = response.choices[0].message.content
+    answer = await get_answer_llm(history)
 
-    # добавляем вопрос ЛЛМ в историю
-    history.append({"role": "assistant", "content": answer})
     agent_message = ''
 
     if verbose:
@@ -37,23 +40,6 @@ async def chat_gpt(user_message, verbose=False):
     try:
         data = json.loads(answer)
 
-        """
-        {"Агент-аналитик": 
-  {
-    "Потребности клиента": [],
-    "Возражения клиента": [],
-    "Тип клиента": "",
-    "Общий комментарий": "Клиент задал вопрос, не относящийся к теме утепления.",
-    "Важные фразы клиента дословно": ["как сварить пельмени"],
-    "Следующий шаг": "Вернуться к теме утепления и задать вопрос о потребностях клиента."
-  },
-  "Агент-выявления потребностей": {
-    "Сообщение": "Это не относится к теме нашей беседы. Давайте вернёмся к утеплению вашего дома. Почему вы рассматриваете утепление? Что именно хотите утеплить?",
-    "Тип_ответа_консультанта": "",
-    "Поисковый_запрос_RAG":""
-  }
-}
-        """
         # исправить код - надо найти ключ по имени агента, ниже не правильно
         agent_command = data["Агент-аналитик"]['Следующий шаг']
         
@@ -62,6 +48,23 @@ async def chat_gpt(user_message, verbose=False):
 
         if agent_command.startswith('Агент-консультант'):
             agent_message = data["Агент-консультант"]['Сообщение']
+            rag_answer = rag.search(data['Агент-консультант']['Поисковый_запрос_RAG'])
+            if rag_answer:
+                # обработка ответа из РАГ. Системный промт консультанта
+                history2 = [{"role": "system", "content": consultant_prompt + " " + rag_answer}]
+                history2.extend(history[1:])   
+                
+                # print("\n", history2, '\n')                         
+
+                response = await get_answer_llm(history2)
+                
+                print("\n", response, '\n') 
+
+                data = json.loads(response)
+                answer = data['answer']
+                # добавляем сообщение ЛЛМ в историю
+                history.append({"role": "assistant", "content": answer})    
+                return answer
 
         if agent_command.startswith('Агент-презентатор'):
             agent_message = data["Агент-презентатор"]['Сообщение']            
@@ -71,18 +74,11 @@ async def chat_gpt(user_message, verbose=False):
 
         if agent_command.startswith('Агент-тип клиента'):
             agent_message = data["Агент-тип клиента"]['Сообщение']  
-        
 
-        """
-        if agent == 'Агент-консультант' and rag:
-            # ищем ответ в раг
-            rag_answer = 'Ответ РАГ: ' + rag.search(user_message, object_type)
-            return rag_answer
-        
-        else:    
-        """
+        # добавляем сообщение ЛЛМ в историю
+        history.append({"role": "assistant", "content": answer})    
+
         return agent_message
-
                     
     except json.JSONDecodeError:
         # Если ответ не в JSON, возвращаем как есть

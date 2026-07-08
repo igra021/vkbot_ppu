@@ -39,16 +39,21 @@ async def chat_gpt(user_message, verbose=False):
 
     try:
         data = json.loads(answer)
+        rag_answer = None
+        data_query = None
 
         # исправить код - надо найти ключ по имени агента, ниже не правильно
-        agent_command = data["Агент-аналитик"]['Следующий шаг']
-        
-        if agent_command.startswith('Агент-выявления потребностей'):
-            agent_message = data["Агент-выявления потребностей"]['Сообщение']
+        agent_command = data["Агент-аналитик"]['Имя агента']
+        agent_message = data[agent_command]['Сообщение']
 
-        if agent_command.startswith('Агент-консультант'):
-            agent_message = data["Агент-консультант"]['Сообщение']
-            rag_answer = rag.search(data['Агент-консультант']['Поисковый_запрос_RAG'])
+        if agent_command == 'Агент-консультант':
+            data_consultant = data['Агент-консультант']
+            data_query = data_consultant.get('Поисковый_запрос_RAG')
+            if data_query:
+                rag_answer = rag.search(data_query)
+            else:
+                return agent_message
+            
             if rag_answer:
                 # обработка ответа из РАГ. Системный промт консультанта
                 history2 = [{"role": "system", "content": consultant_prompt + " " + rag_answer}]
@@ -65,15 +70,6 @@ async def chat_gpt(user_message, verbose=False):
                 # добавляем сообщение ЛЛМ в историю
                 history.append({"role": "assistant", "content": answer})    
                 return answer
-
-        if agent_command.startswith('Агент-презентатор'):
-            agent_message = data["Агент-презентатор"]['Сообщение']            
-
-        if agent_command.startswith('Агент-закрытия возражений'):
-            agent_message = data["Агент-закрытия возражений"]['Сообщение']   
-
-        if agent_command.startswith('Агент-тип клиента'):
-            agent_message = data["Агент-тип клиента"]['Сообщение']  
 
         # добавляем сообщение ЛЛМ в историю
         history.append({"role": "assistant", "content": answer})    

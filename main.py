@@ -10,14 +10,14 @@ from config import labeler, rag_file
 from handlers import chat_labeler
 from create_bot import create_bot
 from llm.rag import RAGSystem
+from db.database import init_db, close_db
 
 
 
 def signal_handler(signum, frame):
     """Обработчик сигналов"""
     logger.info(f"🛑 Получен сигнал остановки {signum} в точке {frame}")
-    # Здесь можно добавить закрытие БД
-    # db.close()
+    close_db()
     exit(0)
 
 async def main():
@@ -29,6 +29,14 @@ async def main():
     # Логирование - Отключаем DEBUG-уровень
     logger.remove()
     logger.add(sys.stderr, level="INFO")
+
+    # 1. ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ
+    try:
+        init_db()
+        logger.info("✅ База данных инициализирована")
+    except Exception as e:
+        logger.error(f"❌ Ошибка инициализации БД: {e}")
+        return  # Прерываем запуск, если БД не создалась
 
     # 1. Инициализируем RAG с проверкой
     try:
@@ -61,7 +69,6 @@ async def main():
         logger.error(f"❌ Ошибка VKAPI: {e.code}")              
     finally:
         logger.info("🧹 Выполняем очистку перед выходом...")
-        # Например: db.close()
         logger.info("✅ Бот успешно остановлен")
 
 

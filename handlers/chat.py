@@ -1,45 +1,47 @@
 # handlers\chat.py
 # хендлеры сообщений
 
+
 from vkbottle.bot import BotLabeler, Message
 from llm.chat_gpt import chat_gpt
 from config import vk_admin, verbose
-# from create_bot import bot
+from loguru import logger
+
 chat_labeler = BotLabeler()
 chat_labeler.vbml_ignore_case = True
 
 @chat_labeler.message()
 async def chat(message: Message):
-    # Извлекаем текст
-    
-    result=''
-    if message.text:
-        result = await chat_gpt(message.text, verbose)
-
-
-    # Извлекаем все фото
-    photos = [att.photo for att in message.attachments if att.photo]
-    # Извлекаем все видео
-    videos = [att.video for att in message.attachments if att.video]
-    
-    # Формируем список строк для параметра attachment
-    attachments = []
-    for photo in photos:
-        attachments.append(f"photo{photo.owner_id}_{photo.id}")
-    for video in videos:
-        attachments.append(f"video{video.owner_id}_{video.id}")
-
-    """
-    # Отправляем другому пользователю
-    await bot.api.messages.send(
-        peer_id=vk_admin,
-        message=f"Вам пересылают вложения из чата: https://vk.com/im?peer={message.peer_id}",
-        attachment=",".join(attachments),  # склеиваем через запятую
-        random_id=0
-    )
-    """
-    
-    if attachments:
-        result += "\n✅ Ваши фото и видео из сообщения пересланы администратору."
-
-    await message.answer(result)
+    try:
+        user_id = message.from_id  # ✅ ID пользователя
+        result = ''
+        
+        # Обработка текстового сообщения
+        if message.text:
+            result = await chat_gpt(user_id, message.text, verbose)
+        
+        # Если ответ пустой — подставляем дефолтное сообщение
+        if not result or not result.strip():
+            result = "Извините, я не смог обработать ваш запрос. Попробуйте переформулировать вопрос."
+            logger.warning(f"⚠️ Пустой ответ для user_id={user_id}")
+        
+        # Обработка вложений (фото, видео)
+        photos = [att.photo for att in message.attachments if att.photo]
+        videos = [att.video for att in message.attachments if att.video]
+        
+        attachments = []
+        for photo in photos:
+            attachments.append(f"photo{photo.owner_id}_{photo.id}")
+        for video in videos:
+            attachments.append(f"video{video.owner_id}_{video.id}")
+        
+        if attachments:
+            result += "\n\n✅ Ваши фото и видео пересланы администратору."
+            # Здесь код пересылки администратору
+        
+        # ✅ Отправляем сообщение
+        await message.answer(result)
+        
+    except Exception as e:
+        logger.error(f"❌ Ошибка в обработчике: {e}")
+        await message.answer("Извините, произошла ошибка. Попробуйте позже.")

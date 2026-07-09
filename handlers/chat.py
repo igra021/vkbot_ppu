@@ -4,7 +4,7 @@
 
 from vkbottle.bot import BotLabeler, Message
 from llm.chat_gpt import chat_gpt
-from config import vk_admin, verbose
+from config import verbose
 from loguru import logger
 
 chat_labeler = BotLabeler()

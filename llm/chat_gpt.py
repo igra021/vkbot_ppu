@@ -37,7 +37,7 @@ async def chat_gpt(user_id: int, user_message: str, verbose: bool = False) -> st
     """
     try:
         # 1. Сохраняем сообщение пользователя в БД
-        save_message(user_id, "user", user_message)
+        await save_message(user_id, "user", user_message)
         
         # 2. Загружаем историю из БД (последние 20 сообщений)
         history = get_history(user_id, limit=20)
@@ -87,21 +87,21 @@ async def chat_gpt(user_id: int, user_message: str, verbose: bool = False) -> st
                             final_answer = rag_response
                         
                         # Сохраняем ответ ассистента в БД
-                        save_message(user_id, "assistant", final_answer)
+                        await save_message(user_id, "assistant", final_answer)
                         return final_answer
             
             # 7. Сохраняем ответ ассистента в БД
-            save_message(user_id, "assistant", agent_message)
+            await save_message(user_id, "assistant", agent_message)
             return agent_message
                     
         except json.JSONDecodeError:
             logger.warning(f"LLM вернул не JSON: {answer}")
             fallback = "LLM вернул не JSON: " + answer
-            save_message(user_id, "assistant", fallback)
+            await save_message(user_id, "assistant", fallback)
             return fallback
             
     except Exception as e:
         logger.error(f"❌ Ошибка в chat_gpt: {e}")
         error_msg = "Извините, произошла ошибка. Попробуйте позже."
-        save_message(user_id, "assistant", error_msg)
+        await save_message(user_id, "assistant", error_msg)
         return error_msg

@@ -10,14 +10,14 @@ from config import labeler, rag_file
 from handlers import chat_labeler
 from create_bot import create_bot
 from llm.rag import RAGSystem
-from db.database import init_db, close_db
+from db.database import init_db
 
 
 
 def signal_handler(signum, frame):
     """Обработчик сигналов"""
     logger.info(f"🛑 Получен сигнал остановки {signum} в точке {frame}")
-    close_db()
+    # close_db()
     exit(0)
 
 async def main():
@@ -32,7 +32,7 @@ async def main():
 
     # 1. ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ
     try:
-        init_db()
+        await init_db()
         logger.info("✅ База данных инициализирована")
     except Exception as e:
         logger.error(f"❌ Ошибка инициализации БД: {e}")

@@ -7,7 +7,8 @@ import signal
 from loguru import logger
 from vkbottle import VKAPIError
 from config import labeler, rag_file
-from handlers import chat_labeler
+from handlers.admin import admin_labeler
+from handlers.chat import chat_labeler
 from create_bot import create_bot
 from llm.rag import RAGSystem
 from db.database import init_db
@@ -52,6 +53,9 @@ async def main():
     # внедряю RAG в ЛЛМ через атрибут rag
     import llm.chat_gpt
     llm.chat_gpt.rag = rag
+
+    # админовские команды
+    labeler.load(admin_labeler) 
  
     # загружаю лабелер (группу хендлеров)
     labeler.load(chat_labeler)

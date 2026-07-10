@@ -10,6 +10,7 @@ from loguru import logger
 chat_labeler = BotLabeler()
 chat_labeler.vbml_ignore_case = True
 
+
 @chat_labeler.message()
 async def chat(message: Message):
     try:

@@ -7,7 +7,7 @@ from loguru import logger
 import json
 from .prompts import system_prompt, consultant_prompt
 from db.database import save_message, get_history
-from func_gpt import get_answer_llm
+from .func_gpt import get_answer_llm
 
 rag = None
 
@@ -57,7 +57,12 @@ async def chat_gpt(user_id: int, user_message: str, verbose: bool = False) -> st
     # ошибка имени агента в отчете агента-аналитика
     except KeyError as e:
         logger.error(f"❌ Ошибка в имени агента в промте: {e}")
-        return "Произошла ошибка при обработке ответа. Повторите ваш вопрос"   
+        agents = ['Агент-выявления потребностей','Агент-консультант','Агент-презентатор','Агент-закрытия возражений','Агент-тип клиента']
+        for agent in agents:    
+            agent_message = data.get(agent, {}).get("Сообщение")
+            if agent_message:
+                return agent_message
+        return "Произошла ошибка при разборе ответа."        
 
     
     # 6. Если агент-консультант — пробуем RAG
@@ -105,6 +110,6 @@ async def chat_gpt(user_id: int, user_message: str, verbose: bool = False) -> st
             logger.error(f"❌ Ошибка в chat_gpt: {e}")
             return "Произошла ошибка при обработке ответа. Повторите ваш вопрос"
 
-        # 7. Сохраняем ответ ассистента в БД
-        await save_message(user_id, "assistant", agent_message)
-        return agent_message
+    # 7. Сохраняем ответ ассистента в БД
+    await save_message(user_id, "assistant", agent_message)
+    return agent_message

@@ -1,5 +1,6 @@
 # llm\chat_gpt.py
 # обработка ответов LLM, Rag
+# получение истории их БД, сохранение сообщений в БД
 
 
 from loguru import logger
@@ -40,7 +41,7 @@ async def chat_gpt(user_id: int, user_message: str, verbose: bool = False) -> st
         await save_message(user_id, "user", user_message)
         
         # 2. Загружаем историю из БД (последние 20 сообщений)
-        history = get_history(user_id, limit=20)
+        history = await get_history(user_id, limit=20)
         
         # 3. Формируем messages для LLM
         messages = [{"role": "system", "content": system_prompt}]

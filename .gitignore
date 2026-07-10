@@ -238,5 +238,6 @@ desktop.ini
 # Ваши специфичные файлы
 *.log
 *.tmp
-data/
+db/database.db
+.vkbottle
 temp/

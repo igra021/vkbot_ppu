@@ -7,7 +7,7 @@ from typing import List, Dict
 from loguru import logger
 import os
 
-DB_PATH = "db\conversations.db"
+DB_PATH = os.path.join("db", "database.db")
 
 async def init_db():
     """Создаёт таблицы для хранения диалогов"""

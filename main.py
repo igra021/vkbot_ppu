@@ -2,8 +2,7 @@
 # Запуск бота
 
 import asyncio
-import sys
-import signal
+import signal, os
 from loguru import logger
 from vkbottle import VKAPIError
 from config import labeler, rag_file
@@ -12,7 +11,7 @@ from handlers.chat import chat_labeler
 from create_bot import create_bot
 from llm.rag import RAGSystem
 from db.database import init_db
-
+from log_setup import log_setup
 
 
 def signal_handler(signum, frame):
@@ -27,9 +26,8 @@ async def main():
     signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
     signal.signal(signal.SIGTERM, signal_handler)  # Завершение от системы
     
-    # Логирование - Отключаем DEBUG-уровень
-    logger.remove()
-    logger.add(sys.stderr, level="INFO")
+    # настройка логирования
+    log_setup()
 
     # 1. ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ
     try:

@@ -37,7 +37,11 @@ async def chat_gpt(user_id: int, user_message: str, verbose: bool = False) -> st
     messages.extend(history)  # Добавляем историю из БД
     
     # 4. Получаем ответ от LLM
-    answer = await get_answer_llm(messages)
+    try:
+        answer = await get_answer_llm(messages)
+    except Exception as e:
+        logger.error(e)
+        return "Произошла ошибка в работе ЛЛМ. Повторите ваш вопрос"
     
     if verbose:
         print('✅ Ответ ЛЛМ: ', answer)
@@ -56,7 +60,7 @@ async def chat_gpt(user_id: int, user_message: str, verbose: bool = False) -> st
 
     # ошибка имени агента в отчете агента-аналитика
     except KeyError as e:
-        logger.error(f"❌ Ошибка в имени агента в промте: {e}")
+        logger.warning(f"❌ Ошибка в имени агента в промте: {e}")
         agents = ['Агент-выявления потребностей','Агент-консультант','Агент-презентатор','Агент-закрытия возражений','Агент-тип клиента']
         for agent in agents:    
             agent_message = data.get(agent, {}).get("Сообщение")
@@ -88,7 +92,11 @@ async def chat_gpt(user_id: int, user_message: str, verbose: bool = False) -> st
                     rag_messages.extend(history_without_system)
                     
                     # Получаем ответ с учётом RAG
-                    rag_response = await get_answer_llm(rag_messages)
+                    try:
+                        rag_response = await get_answer_llm(rag_messages)
+                    except Exception as e:
+                        logger.error(e)
+                        return "Произошла ошибка в работе RAG ЛЛМ. Повторите ваш вопрос"
                     
                     if verbose:
                         print("\n📚 Ответ RAG:", rag_response, '\n')
@@ -104,7 +112,7 @@ async def chat_gpt(user_id: int, user_message: str, verbose: bool = False) -> st
                     await save_message(user_id, "assistant", final_answer)
                     return final_answer
                 else:
-                    logger.error(f"RAG не нашел ответ на вопрос: {data_query}")
+                    logger.warning(f"RAG не нашел ответ на вопрос: {data_query}")
                     return "Не смог найти ответ на ваш вопрос"
         except Exception as e:
             logger.error(f"❌ Ошибка в chat_gpt: {e}")

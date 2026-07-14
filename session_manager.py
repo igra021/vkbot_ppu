@@ -37,8 +37,11 @@ class SessionManager:
     
     def get_session(self, user_id: int) -> Session:
         """Получает сессию пользователя"""
+
+        # очистка старых сессий
         self._cleanup_expired()
         
+        # создает новую сессию
         if user_id not in self.sessions:
             logger.debug(f"📝 Создана новая сессия для {user_id}")
             self.sessions[user_id] = Session(user_id)
@@ -55,29 +58,12 @@ class SessionManager:
         ]
         
         for uid in expired:
-            self._save_and_remove(uid)
+            del self.sessions[uid]
         
         if expired:
             logger.debug(f"🗑️ Удалено {len(expired)} истекших сессий")
     
-    def _save_and_remove(self, user_id: int):
-        """Сохраняет dirty-сессию и удаляет"""
-        session = self.sessions.get(user_id)
-        if session and session.is_dirty:
-            # TODO: Сохранить в БД
-            # await save_history(user_id, session.history)
-            logger.debug(f"💾 Сохранена сессия для {user_id}")
-        
-        del self.sessions[user_id]
-    
-    def save_all(self):
-        """Сохраняет все dirty-сессии"""
-        for user_id, session in self.sessions.items():
-            if session.is_dirty:
-                # TODO: Сохранить в БД
-                # await save_history(user_id, session.history)
-                pass
-    
+    # вызов из хэндлера admin - очистка истории
     def clear_session(self, user_id: int):
         """Очищает сессию пользователя"""
         if user_id in self.sessions:

@@ -1,8 +1,8 @@
 # llm/func_gpt.py
 # функция вызова ЛЛМ, обработка ошибок
+# 
 
 from loguru import logger
-import json
 import asyncio
 from config import client, open_ai_model, temperature
 from openai import APIError, APIConnectionError, RateLimitError, AuthenticationError, BadRequestError
@@ -17,7 +17,7 @@ async def get_answer_llm(messages, retry_count: int = 3, retry_delay: int = 2) -
         retry_delay: Задержка между попытками (секунды)
     
     Returns:
-        str: Ответ от LLM или сообщение об ошибке
+        dict: Ответ от LLM (словарь) или сообщение об ошибке
     
     Raises:
         Exception: Если все попытки не удались
@@ -43,8 +43,8 @@ async def get_answer_llm(messages, retry_count: int = 3, retry_delay: int = 2) -
             
             if not content or not content.strip():
                 raise ValueError("Пустое содержимое ответа")
-            
-            return content
+            else:
+                return content
             
         except AuthenticationError as e:
             logger.error(f"❌ Ошибка аутентификации OpenAI: {e}")
@@ -88,11 +88,7 @@ async def get_answer_llm(messages, retry_count: int = 3, retry_delay: int = 2) -
                 continue
             else:
                 raise Exception("Превышено время ожидания ответа от OpenAI.")
-                
-        except json.JSONDecodeError as e:
-            logger.error(f"❌ Ошибка парсинга JSON: {e}")
-            raise Exception("Неверный формат ответа от OpenAI.")
-            
+                            
         except Exception as e:
             logger.error(f"❌ Неизвестная ошибка: {e}")
             if attempt < retry_count - 1:

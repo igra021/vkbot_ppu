@@ -5,7 +5,7 @@ import asyncio
 import signal, os
 from loguru import logger
 from vkbottle import VKAPIError
-from config import labeler, rag_file
+from config import labeler, rag_file, DEBUG
 from handlers.admin import admin_labeler
 from handlers.chat import chat_labeler
 from create_bot import create_bot
@@ -49,8 +49,8 @@ async def main():
         rag = None
 
     # внедряю RAG в ЛЛМ через атрибут rag
-    import llm.chat_gpt
-    llm.chat_gpt.rag = rag
+    import llm.parsing_answer
+    llm.parsing_answer.rag = rag
 
     # админовские команды
     labeler.load(admin_labeler) 
@@ -62,6 +62,9 @@ async def main():
     bot = create_bot()
     try:
         logger.info("🤖 Бот запущен")
+        if DEBUG:
+            print(("🤖 Бот запущен"))
+
         await bot.run_polling()
     except KeyboardInterrupt:
         logger.info(f"❌ Ctrl+C Остановка пользователем") 

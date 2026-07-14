@@ -7,7 +7,7 @@ from langchain_core.documents import Document
 import pandas as pd
 from loguru import logger
 
-from config import api_key, embeddings_model, base_url, verbose
+from config import api_key, embeddings_model, base_url
 
 class RAGSystem:
     """
@@ -58,7 +58,7 @@ class RAGSystem:
 
     def search(self, query: str, top_k: int=1) -> list:
         """
-        Поиск чанков по запросу query и типу объекта object_type
+        Поиск чанков по запросу query
         Args:
             query: Запрос пользователя
             top_k: Количество результатов
@@ -67,16 +67,17 @@ class RAGSystem:
         """
 
         try:       
-            logger.info(f"Вопрос: {query}")
+            print('---RAG----')
+            logger.info(f"RAG поступил вопрос: {query}")
             results = self.db.similarity_search(
                 query,
                 k=top_k
             )
             if results:
+                print('---RAG answer----')
                 # Берём самый релевантный ответ
                 best = results[0]
-                if verbose:
-                    print('------ RAG: ', best.metadata.get('answer', best.page_content))
+                logger.debug('RAG найден ответ: ', best.metadata.get('answer', best.page_content))
                 return best.metadata.get('answer', best.page_content)
             else:   
                 return None

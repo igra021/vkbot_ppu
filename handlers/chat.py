@@ -4,7 +4,6 @@
 
 from vkbottle.bot import BotLabeler, Message
 from llm.chat_gpt import chat_gpt
-from config import verbose
 from loguru import logger
 
 chat_labeler = BotLabeler()
@@ -19,7 +18,7 @@ async def chat(message: Message):
         
         # Обработка текстового сообщения
         if message.text:
-            result = await chat_gpt(user_id, message.text, verbose)
+            result = await chat_gpt(user_id, message.text)
         
         # Если ответ пустой — подставляем дефолтное сообщение
         if not result or not result.strip():

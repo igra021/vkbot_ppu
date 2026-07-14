@@ -5,13 +5,11 @@
 import os
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
-from vkbottle import BuiltinStateDispenser
 from vkbottle.bot import BotLabeler
 
 load_dotenv()
 
 labeler = BotLabeler()
-#state_dispenser = BuiltinStateDispenser()
 
 # параметры из .env
 api_key = os.getenv('OPENAI_API_KEY')
@@ -26,8 +24,7 @@ rag_file = os.getenv('rag_file')
 vk_token = os.getenv('VK_token')
 proxy = os.getenv('proxy')
 vk_admin = int(os.getenv('vk_admin'))
-verbose = bool(os.getenv('verbose'))
-
+DEBUG = bool(os.getenv('DEBUG'))
 
 
 

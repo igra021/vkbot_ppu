@@ -67,14 +67,14 @@ class RAGSystem:
         """
 
         try:       
-            print('---RAG----')
+            
             logger.info(f"RAG поступил вопрос: {query}")
             results = self.db.similarity_search(
                 query,
                 k=top_k
             )
             if results:
-                print('---RAG answer----')
+                
                 # Берём самый релевантный ответ
                 best = results[0]
                 logger.debug('RAG найден ответ: ', best.metadata.get('answer', best.page_content))

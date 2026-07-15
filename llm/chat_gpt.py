@@ -31,6 +31,10 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
     try:
         # 1. Получаем сессию пользователя из памяти
         session_user = session_manager.get_session(user_id)
+
+        import pprint
+        print('\n--------sesion----\n')
+        pprint.pprint(session_user)
         
         # 2. Если сессия новая (нет истории), загружаем из БД
         if not session_user.history:
@@ -43,33 +47,42 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
         previous_analytics = await get_last_analytics(user_id)
         if DEBUG and previous_analytics:
             logger.debug(f"📊 Предыдущая аналитика: {json.dumps(previous_analytics, ensure_ascii=False, indent=2)}")
-            logger.debug(f"Сообщение клиента: {user_message}")
-        
-        # 4. Добавляем новое сообщение пользователя в сессию
-        session_user.add_message("user", user_message)
-        
-        # 5. Формируем промт с аналитикой
+            logger.debug(f"🆘 Сообщение клиента: {user_message}")
+               
+        # 4. Формируем промт с аналитикой
         messages = [{"role": "system", "content": system_prompt}]
-        
-        # Добавляем предыдущую аналитику как системный контекст (если есть)
-        if previous_analytics:
-            analytics_context = (
-                "Предыдущая аналитика (дополни её, не теряя данные):\n"
-                f"{json.dumps(previous_analytics, ensure_ascii=False, indent=2)}"
-            )
-            messages.append({"role": "system", "content": analytics_context})
         
         # Добавляем историю из сессии (она уже в правильном порядке)
         messages.extend(session_user.history)
+
+        # Добавляем предыдущую аналитику как системный контекст (если есть)
+        if previous_analytics:
+            analytics_context = (
+                "Предыдущая аналитика: \n"
+                f"{json.dumps(previous_analytics, ensure_ascii=False, indent=2)}"
+            )
+            messages.append({"role": "assistant", "content": analytics_context})
+        
+        # добавляю сообщение клиента
+        messages.append({"role": "user", "content": user_message})
+        print('\n--------mesages----\n')
+        pprint.pprint(messages[1:])
+
+        # 5. Добавляем новое сообщение пользователя в сессию
+        session_user.add_message("user", user_message)
+        
         
         # 6. Получаем ответ от LLM
         try:
             answer_json = await get_answer_llm(messages)
             answer = json.loads(answer_json)
+            logger.debug(f"✅ Ответ ЛЛМ: {json.dumps(answer_json, ensure_ascii=False, indent=2)}")
+
         except json.JSONDecodeError as e:
             logger.error(f"❌ LLM вернул не JSON: {answer_json}")
             logger.error(f"❌ Ошибка: {e}")
             return "Ошибка в структуре ответа. Повторите ваш вопрос"
+        
         except Exception as e:
             logger.error(f"❌ Ошибка получения ответа от LLM: {e}")
             return "Произошла ошибка в работе LLM. Повторите ваш вопрос"         
@@ -92,8 +105,10 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
         
         # 10. Сохраняем в БД (только если сессия "грязная")
         if session_user.is_dirty:
+            
             # Сохраняем сообщение пользователя
             await save_message_to_db(user_id, "user", user_message)
+            
             # Сохраняем ответ ассистента с аналитикой
             await save_message_to_db(user_id, "assistant", agent_message, analytics)
             session_user.is_dirty = False  # Сбрасываем флаг

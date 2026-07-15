@@ -38,8 +38,7 @@ async def parsing_answer(agent_answer: dict, history: list) -> tuple:
         search_query = analitika.get('search_query', '')
         
         if DEBUG:
-            logger.debug(f"✅ Аналитика после сообщения клиента: {json.dumps(analitika, ensure_ascii=False, indent=2)}")
-            logger.debug(f"✅ Сообщение: {agent_message[:100]}...")
+            #logger.debug(f"✅ Сообщение: {agent_message[:100]}...")
             if search_query:
                 logger.debug(f"🔍 search_query: {search_query}")
 

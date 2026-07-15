@@ -10,6 +10,7 @@ from .func_gpt import get_answer_llm
 from session_manager import session_manager
 from .parsing_answer import parsing_answer
 from config import DEBUG
+import pprint
 
 rag = None
 
@@ -32,9 +33,7 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
         # 1. Получаем сессию пользователя из памяти
         session_user = session_manager.get_session(user_id)
 
-        import pprint
-        print('\n--------sesion----\n')
-        pprint.pprint(session_user)
+        
         
         # 2. Если сессия новая (нет истории), загружаем из БД
         if not session_user.history:
@@ -65,18 +64,20 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
         
         # добавляю сообщение клиента
         messages.append({"role": "user", "content": user_message})
-        print('\n--------mesages----\n')
-        pprint.pprint(messages[1:])
+        
 
         # 5. Добавляем новое сообщение пользователя в сессию
         session_user.add_message("user", user_message)
         
-        
+        print("--------сообщение клиента: ", user_message)
+
         # 6. Получаем ответ от LLM
         try:
             answer_json = await get_answer_llm(messages)
             answer = json.loads(answer_json)
             logger.debug(f"✅ Ответ ЛЛМ: {json.dumps(answer_json, ensure_ascii=False, indent=2)}")
+            print('\n--------answer----\n')
+            pprint.pprint(answer)
 
         except json.JSONDecodeError as e:
             logger.error(f"❌ LLM вернул не JSON: {answer_json}")

@@ -4,7 +4,7 @@
 import json
 from loguru import logger
 from config import DEBUG
-from .prompts_v2 import consultant_prompt
+from .prompt_consul import consultant_prompt
 from .func_gpt import get_answer_llm
 
 # Глобальная переменная RAG (устанавливается из main)

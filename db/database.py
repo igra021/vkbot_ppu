@@ -21,7 +21,6 @@ async def init_db():
                 user_id INTEGER NOT NULL,
                 role TEXT NOT NULL,
                 content TEXT NOT NULL,
-                analytics_json TEXT, 
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
@@ -34,8 +33,7 @@ async def init_db():
 async def save_message_to_db(
     user_id: int, 
     role: str, 
-    content: str, 
-    analytics: Optional[Dict] = None
+    content: str
 ):
     """
     Сохраняет одно сообщение в БД (асинхронно)
@@ -44,26 +42,17 @@ async def save_message_to_db(
         user_id: ID пользователя
         role: 'user' или 'assistant'
         content: Текст сообщения
-        analytics: Словарь с аналитикой (только для assistant)
     """
     # Проверяем, что сообщение не пустое
-    if not content or not content.strip():
+    if not content:
         logger.warning(f"⚠️ Попытка сохранить пустое сообщение для user_id={user_id}")
         content = "[пустое сообщение]"
     
-    # Преобразуем аналитику в JSON
-    analytics_json = None
-    if analytics:
-        try:
-            analytics_json = json.dumps(analytics, ensure_ascii=False)
-        except Exception as e:
-            logger.error(f"❌ Ошибка преобразования аналитики в JSON: {e}")
-            analytics_json = None
-    
+   
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
-            "INSERT INTO conversations (user_id, role, content, analytics_json) VALUES (?, ?, ?, ?)",
-            (user_id, role, content, analytics_json)
+            "INSERT INTO conversations (user_id, role, content) VALUES (?, ?, ?)",
+            (user_id, role, content)
         )
         await db.commit()
         logger.debug(f"💾 Сообщение сохранено: user_id={user_id}, role={role}")
@@ -86,25 +75,6 @@ async def get_history_from_db(
             # Разворачиваем для правильного порядка (от старых к новым)
             history = [{"role": row[0], "content": row[1]} for row in rows[::-1]]
             return history
-
-
-async def get_last_analytics(user_id: int) -> Optional[Dict]:
-    """
-    Получает аналитику из последнего сообщения ассистента для пользователя
-    """
-    async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute(
-            "SELECT analytics_json FROM conversations WHERE user_id = ? AND role = 'assistant' ORDER BY id DESC LIMIT 1",
-            (user_id,)
-        ) as cursor:
-            row = await cursor.fetchone()
-            if row and row[0]:
-                try:
-                    return json.loads(row[0])
-                except json.JSONDecodeError as e:
-                    logger.error(f"❌ Ошибка парсинга analytics_json для user_id={user_id}: {e}")
-                    return None
-            return None
 
 
 async def clear_history(user_id: int):

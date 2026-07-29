@@ -5,7 +5,7 @@
 import json
 from loguru import logger
 from .prompts_v2 import system_prompt
-from db.database import save_message_to_db, get_history_from_db, get_last_analytics
+from db.database import save_message_to_db, get_history_from_db
 from .func_gpt import get_answer_llm
 from session_manager import session_manager
 from .parsing_answer import parsing_answer
@@ -42,11 +42,6 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
                 session_user.history = history_from_db
                 logger.debug(f"📚 Загружено {len(history_from_db)} сообщений из БД для {user_id}")
         
-        # 3. Получаем предыдущую аналитику (если есть)
-        previous_analytics = await get_last_analytics(user_id)
-        if DEBUG and previous_analytics:
-            logger.debug(f"📊 Предыдущая аналитика: {json.dumps(previous_analytics, ensure_ascii=False, indent=2)}")
-            logger.debug(f"🆘 Сообщение клиента: {user_message}")
                
         # 4. Формируем промт с аналитикой
         messages = [{"role": "system", "content": system_prompt}]
@@ -54,13 +49,6 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
         # Добавляем историю из сессии (она уже в правильном порядке)
         messages.extend(session_user.history)
 
-        # Добавляем предыдущую аналитику как системный контекст (если есть)
-        if previous_analytics:
-            analytics_context = (
-                "Предыдущая аналитика: \n"
-                f"{json.dumps(previous_analytics, ensure_ascii=False, indent=2)}"
-            )
-            messages.append({"role": "assistant", "content": analytics_context})
         
         # добавляю сообщение клиента
         messages.append({"role": "user", "content": user_message})
@@ -91,14 +79,14 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
         # 8. Парсинг ответа (получаем аналитику и сообщение для клиента)
         #    В parsing_answer уже обрабатывается RAG, если есть search_query
         try:
-            analytics, agent_message = await parsing_answer(answer, session_user.history)
+            agent_message = await parsing_answer(answer, session_user.history)
         except Exception as e:
             logger.error(f"❌ Ошибка парсинга ответа: {e}")
             return "Произошла ошибка при обработке ответа. Повторите ваш вопрос"
         
-        # 9. Добавляем ответ ассистента в сессию
+        # 9. Добавляем полный ответ ассистента в сессию
         if agent_message and agent_message.strip():
-            session_user.add_message("assistant", agent_message)
+            session_user.add_message("assistant", answer_json)
         else:
             logger.warning(f"⚠️ Пустой ответ для user_id={user_id}")
             agent_message = "Извините, я не могу ответить на ваш вопрос. Попробуйте переформулировать."
@@ -110,8 +98,8 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
             # Сохраняем сообщение пользователя
             await save_message_to_db(user_id, "user", user_message)
             
-            # Сохраняем ответ ассистента с аналитикой
-            await save_message_to_db(user_id, "assistant", agent_message, analytics)
+            # Сохраняем полный ответ ассистента с аналитикой
+            await save_message_to_db(user_id, "assistant", answer_json)
             session_user.is_dirty = False  # Сбрасываем флаг
             logger.debug(f"💾 Данные сохранены в БД для user_id={user_id}")
         

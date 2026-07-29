@@ -49,7 +49,7 @@ async def parsing_answer(agent_answer: dict, history: list) -> tuple:
     # 2. Проверка на пустое сообщение
     if not search_query and not agent_message:
         logger.warning("⚠️ Пустое сообщение от агента")
-        return analitika, "Извините, я не могу ответить на ваш вопрос. Попробуйте переформулировать."
+        return "Извините, я не могу ответить на ваш вопрос. Попробуйте переформулировать."
 
     # 3. ✅ РАБОТА С RAG (если есть search_query и rag доступен)
     if search_query and rag:
@@ -75,24 +75,24 @@ async def parsing_answer(agent_answer: dict, history: list) -> tuple:
                     logger.debug(f"📚 Ответ LLM с RAG: {rag_response[:200]}...")
                 except Exception as e:
                     logger.error(f"❌ Ошибка получения ответа LLM с RAG: {e}")
-                    return analitika, agent_message  # Возвращаем обычный ответ
+                    return agent_message  # Возвращаем обычный ответ
                 
                 # Парсим ответ с RAG
                 try:
                     rag_data = json.loads(rag_response)
                     rag_message = rag_data.get('answer', rag_response)
-                    return analitika, rag_message
+                    return rag_message
                 except json.JSONDecodeError:
                     logger.error(f"❌ LLM с RAG вернул не JSON: {rag_response}")
-                    return analitika, agent_message  # Возвращаем обычный ответ
+                    return agent_message  # Возвращаем обычный ответ
             
             else:
                 logger.warning(f"⚠️ RAG не нашёл ответ: {search_query}")
-                return analitika, agent_message  # Возвращаем обычный ответ
+                return agent_message  # Возвращаем обычный ответ
                 
         except Exception as e:
             logger.error(f"❌ Ошибка RAG: {e}")
-            return analitika, agent_message  # Возвращаем обычный ответ
+            return agent_message  # Возвращаем обычный ответ
     
     # 4. Возвращаем обычный ответ (без RAG)
-    return analitika, agent_message
+    return agent_message

@@ -3,7 +3,7 @@
 # 
 
 from loguru import logger
-import asyncio
+import asyncio, json
 from config import client, open_ai_model, temperature
 from openai import APIError, APIConnectionError, RateLimitError, AuthenticationError, BadRequestError
 
@@ -44,7 +44,12 @@ async def get_answer_llm(messages, retry_count: int = 3, retry_delay: int = 2) -
             if not content or not content.strip():
                 raise ValueError("Пустое содержимое ответа")
             else:
-                return content
+                try:
+                    return json.loads(content)
+                except json.JSONDecodeError as e:
+                    logger.error(f"❌ LLM вернул не JSON: {content}")
+                    logger.error(f"❌ Ошибка: {e}")
+                    return "Ошибка в структуре ответа. Повторите ваш вопрос"
             
         except AuthenticationError as e:
             logger.error(f"❌ Ошибка аутентификации OpenAI: {e}")

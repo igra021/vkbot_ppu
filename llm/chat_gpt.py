@@ -8,7 +8,6 @@ from .prompts_v2 import system_prompt
 from db.database import save_message_to_db, get_history_from_db
 from .func_gpt import get_answer_llm
 from session_manager import session_manager
-from .parsing_answer import parsing_answer
 from config import DEBUG
 import pprint
 
@@ -32,9 +31,7 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
     try:
         # 1. Получаем сессию пользователя из памяти
         session_user = session_manager.get_session(user_id)
-
-        
-        
+  
         # 2. Если сессия новая (нет истории), загружаем из БД
         if not session_user.history:
             history_from_db = await get_history_from_db(user_id, limit=30)
@@ -48,21 +45,23 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
         
         # Добавляем историю из сессии (она уже в правильном порядке)
         messages.extend(session_user.history)
-
         
         # добавляю сообщение клиента
         messages.append({"role": "user", "content": user_message})
         
-
         # 5. Добавляем новое сообщение пользователя в сессию
         session_user.add_message("user", user_message)
         
-        print("--------сообщение клиента: ", user_message)
 
         # 6. Получаем ответ от LLM
         try:
             answer_json = await get_answer_llm(messages)
             answer = json.loads(answer_json)
+            
+            # 7. Извлекаем вопрос и ответ
+            agent_message = answer.get('Ответ_клиенту', '')
+            search_query = answer.get('Вопрос_клиента', '')
+            
             logger.debug(f"✅ Ответ ЛЛМ: {json.dumps(answer_json, ensure_ascii=False, indent=2)}")
             print('\n--------answer----\n')
             pprint.pprint(answer)
@@ -76,13 +75,37 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
             logger.error(f"❌ Ошибка получения ответа от LLM: {e}")
             return "Произошла ошибка в работе LLM. Повторите ваш вопрос"         
        
-        # 8. Парсинг ответа (получаем аналитику и сообщение для клиента)
-        #    В parsing_answer уже обрабатывается RAG, если есть search_query
-        try:
-            agent_message = await parsing_answer(answer, session_user.history)
-        except Exception as e:
-            logger.error(f"❌ Ошибка парсинга ответа: {e}")
-            return "Произошла ошибка при обработке ответа. Повторите ваш вопрос"
+
+        # 8. РАБОТА С RAG (если есть search_query и rag доступен)
+        if search_query and rag:
+
+            # Ищем ответ в RAG
+            rag_answer = rag.search(search_query)
+            
+            if rag_answer:
+                
+                # Получаем ответ от LLM на основе ответа из RAG
+                # формирую новую историю только для ЛЛМ + RAG:
+                # из истории диалога убираем исходный системный промт и последний ответ ЛЛМ, оставляем только последний вопрос.
+                # к системному промту добавляем "На основе информации из базы знаний сформируй ответ клиенту.\n\n" f"Информация из базы знаний:\n{rag_answer}\n\n"
+                # передаю новую историю в ЛЛМ
+                # получаю ответ, 
+                #
+                #
+                try:
+                    answer_json = await get_answer_llm(rag_messages)
+        
+                except Exception as e:
+                    logger.error(f"❌ Ошибка получения ответа LLM с RAG: {e}")
+                
+                # Парсим ответ с RAG
+                try:
+                    answer = json.loads(answer_json)
+                    agent_message = answer.get('Ответ_клиенту', '')
+                
+                except json.JSONDecodeError:
+                    logger.error(f"❌ LLM с RAG вернул не JSON: {answer_json}")
+
         
         # 9. Добавляем полный ответ ассистента в сессию
         if agent_message and agent_message.strip():
@@ -98,9 +121,11 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
             # Сохраняем сообщение пользователя
             await save_message_to_db(user_id, "user", user_message)
             
-            # Сохраняем полный ответ ассистента с аналитикой
+            # Сохраняем полный ответ ассистента
             await save_message_to_db(user_id, "assistant", answer_json)
-            session_user.is_dirty = False  # Сбрасываем флаг
+
+            # Сбрасываем флаг
+            session_user.is_dirty = False  
             logger.debug(f"💾 Данные сохранены в БД для user_id={user_id}")
         
         return agent_message

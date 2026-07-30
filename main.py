@@ -49,8 +49,8 @@ async def main():
         rag = None
 
     # внедряю RAG в ЛЛМ через атрибут rag
-    import llm.parsing_answer
-    llm.parsing_answer.rag = rag
+    import llm.chat_gpt
+    llm.chat_gpt.rag = rag
 
     # админовские команды
     labeler.load(admin_labeler) 

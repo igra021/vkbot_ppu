@@ -28,23 +28,47 @@ async def parsing_answer(agent_answer: dict, history: list) -> tuple:
     if DEBUG:
         logger.debug(f"📥 Парсинг ответа: {json.dumps(agent_answer, ensure_ascii=False)[:500]}...")
 
-    # 1. Извлекаем вопрос и ответ
-    agent_message = agent_answer.get('Ответ_клиенту', '')
-    search_query = agent_answer.get('Вопрос_клиента', '')
+    # 1. Извлекаем аналитику и сообщение
+    try:
+        agent_message = agent_answer.get('Ответ_клиенту', '')
+        search_query = agent_answer.get('Вопрос_клиента', '')
+        
+        if DEBUG:
+            #logger.debug(f"✅ Сообщение: {agent_message[:100]}...")
+            if search_query:
+                logger.debug(f"🔍 search_query: {search_query}")
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка извлечения данных из ответа: {e}")
+        return {}, "Произошла ошибка при обработке ответа. Повторите ваш вопрос"
+
+    # 2. Проверка на пустое сообщение
+    if not search_query and not agent_message:
+        logger.warning("⚠️ Пустое сообщение от агента")
+        return "Извините, я не могу ответить на ваш вопрос. Попробуйте переформулировать."
 
     # 3. ✅ РАБОТА С RAG (если есть search_query и rag доступен)
     if search_query and rag:
+        logger.info(f"🔍 Поиск в RAG: {search_query}")
         
         try:
             # Ищем ответ в RAG
             rag_answer = rag.search(search_query)
             
             if rag_answer:
+                logger.debug(f"📚 Найден ответ RAG: {rag_answer[:100]}...")
                 
-                # Получаем ответ от LLM на основе ответа из RAG
+                # Формируем новую историю с RAG
+                rag_messages = [
+                    {"role": "system", "content": consultant_prompt + " " + rag_answer}
+                ]
+                rag_messages.extend(history)
+                logger.debug(f"История диалога для RAG: {rag_messages}")
+
+                # Получаем ответ от LLM на основе RAG
                 try:
                     rag_response = await get_answer_llm(rag_messages)
-        
+                    logger.debug(f"📚 Ответ LLM с RAG: {rag_response[:200]}...")
                 except Exception as e:
                     logger.error(f"❌ Ошибка получения ответа LLM с RAG: {e}")
                     return agent_message  # Возвращаем обычный ответ
@@ -59,9 +83,11 @@ async def parsing_answer(agent_answer: dict, history: list) -> tuple:
                     return agent_message  # Возвращаем обычный ответ
             
             else:
+                logger.warning(f"⚠️ RAG не нашёл ответ: {search_query}")
                 return agent_message  # Возвращаем обычный ответ
                 
         except Exception as e:
+            logger.error(f"❌ Ошибка RAG: {e}")
             return agent_message  # Возвращаем обычный ответ
     
     # 4. Возвращаем обычный ответ (без RAG)

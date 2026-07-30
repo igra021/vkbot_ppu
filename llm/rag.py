@@ -79,12 +79,13 @@ class RAGSystem:
                 best = results[0]
                 logger.debug('RAG найден ответ: ', best.metadata.get('answer', best.page_content))
                 return best.metadata.get('answer', best.page_content)
-            else:   
+            else: 
+                logger.error(f"❌ Пустой ответ из RAG")      
                 return None
         
         except Exception as e:
             logger.error(f"❌ Ошибка поиска в RAG: {e}")
-            return []
+            return None
 
     def is_ready(self) -> bool:
         """Проверяет, готова ли RAG к работе"""

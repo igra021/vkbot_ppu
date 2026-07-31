@@ -61,7 +61,11 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
             search_query = answer_llm.get('Вопрос_клиента', '')
             
             logger.debug(f"✅ Ответ ЛЛМ: {answer_llm}")
-            print('\n--------answer----\n')
+
+            print('\n--------Вопрос клиента----\n')
+            print(user_message)
+            
+            print('\n--------Ответ ЛЛМ----\n')
             pprint.pprint(answer_llm)
        
         except Exception as e:

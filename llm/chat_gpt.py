@@ -12,6 +12,20 @@ import pprint
 
 rag = None
 
+def save_to_file(text, messages):
+    with open('C:\\_Python\\vkbot\\messages.txt', 'a', encoding='utf-8') as f:
+
+        f.write('---------\n')
+        f.write(f'------ {text}\n')
+
+        if type(messages) is str:
+            f.write(messages)
+            f.write('\n')
+
+        else:    
+            for el in messages:
+                f.write(str(el))
+                f.write('\n')
 
 # вызов из chat.py
 @logger.catch
@@ -53,6 +67,11 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
 
         # 6. Получаем ответ от LLM
         try:
+            
+            if DEBUG:
+                save_to_file('Клиент: ', user_message)
+                save_to_file('Первый вызов ЛЛМ', messages)
+
             answer_llm = await get_answer_llm(messages)
 
             print('\n--------Ответ ЛЛМ, первый вызов ЛЛМ----\n')
@@ -87,6 +106,9 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
 
                 # Получаем ответ от LLM на основе ответа из RAG
                 try:
+                    if DEBUG:
+                        save_to_file('Вызов ЛЛМ с RAG', rag_messages)
+
                     answer_llm = await get_answer_llm(rag_messages)
                     agent_message = answer_llm.get('Ответ_клиенту', '')
 

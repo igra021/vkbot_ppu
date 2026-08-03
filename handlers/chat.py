@@ -12,6 +12,9 @@ chat_labeler.vbml_ignore_case = True
 
 @chat_labeler.message()
 async def chat(message: Message):
+    # проверка работы чатбота- сообщения доходят до бота
+    # print(f"🔥 ПОЛУЧЕНО СООБЩЕНИЕ от {message.from_id}: {message.text}")
+
     try:
         user_id = message.from_id  # ✅ ID пользователя
         result = ''

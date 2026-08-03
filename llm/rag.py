@@ -78,7 +78,7 @@ class RAGSystem:
                 # Берём самый релевантный ответ
                 best = results[0]
                 logger.debug('♻ RAG найден ответ: ', best.metadata.get('answer', best.page_content).strip())
-                print("\nRAG ответ: ", best.metadata.get('answer', best.page_content).strip())
+                
 
                 return best.metadata.get('answer', best.page_content).strip()
             else: 

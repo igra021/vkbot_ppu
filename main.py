@@ -12,12 +12,17 @@ from create_bot import create_bot
 from llm.rag import RAGSystem
 from db.database import init_db
 from log_setup import log_setup
-
+import gc
 
 def signal_handler(signum, frame):
     """Обработчик сигналов"""
     logger.info(f"🛑 Получен сигнал остановки {signum} в точке {frame}")
-    # close_db()
+    logger.complete()  # loguru: дожидается завершения всех задач
+    logger.remove()    # удаляем все обработчики
+
+    # Закрываем файловые дескрипторы
+    gc.collect()
+
     exit(0)
 
 async def main():

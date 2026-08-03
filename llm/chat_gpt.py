@@ -28,33 +28,35 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
         str: Ответ бота
     """
     try:
-        # 1. Получаем сессию пользователя из памяти
+        print('\n--------Вопрос клиента----\n')
+        print(user_message)
+
+        # 1. Получаем сессию пользователя и историю из памяти
         session_user = session_manager.get_session(user_id)
   
         # 2. Если сессия новая (нет истории), загружаем из БД
         if not session_user.history:
-            history_from_db = await get_history_from_db(user_id, limit=30)
+            history_from_db = await get_history_from_db(user_id, limit=100)
             if history_from_db:
                 session_user.history = history_from_db
                 logger.debug(f"📚 Загружено {len(history_from_db)} сообщений из БД для {user_id}")
         
+        # 3. Добавляем новое сообщение пользователя в сессию и в историю (через sesion manager)
+        session_user.add_message("user", user_message)
                
         # 4. Формируем промт с аналитикой
         messages = [{"role": "system", "content": system_prompt}]
         
-        # Добавляем историю из сессии (она уже в правильном порядке)
+        # 5. Добавляем историю из сессии (она уже в правильном порядке)
         messages.extend(session_user.history)
-        
-        # добавляю сообщение клиента
-        messages.append({"role": "user", "content": user_message})
-        
-        # 5. Добавляем новое сообщение пользователя в сессию
-        session_user.add_message("user", user_message)
-        
+              
 
         # 6. Получаем ответ от LLM
         try:
             answer_llm = await get_answer_llm(messages)
+
+            print('\n--------Ответ ЛЛМ, первый вызов ЛЛМ----\n')
+            pprint.pprint(answer_llm)
             
             # 7. Извлекаем вопрос и ответ
             agent_message = answer_llm.get('Ответ_клиенту', '')
@@ -62,11 +64,7 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
             
             logger.debug(f"✅ Ответ ЛЛМ: {answer_llm}")
 
-            print('\n--------Вопрос клиента----\n')
-            print(user_message)
-            
-            print('\n--------Ответ ЛЛМ----\n')
-            pprint.pprint(answer_llm)
+
        
         except Exception as e:
             logger.error(f"❌ Ошибка получения ответа от LLM: {e}")
@@ -80,10 +78,10 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
             rag_answer = rag.search(search_query)
             
             if rag_answer:
-
+                print('---Ответ RAG: ', rag_answer)
                 # формирую новую историю только для ЛЛМ + RAG:
                 # из истории диалога убираем исходный системный промт, оставляем только последний вопрос.
-                rag_prompt = system_prompt + f"\nНа основе информации из базы знаний сформируй ответ клиенту. Информация из базы знаний:\n{rag_answer}"
+                rag_prompt = f"\nВот ответ на вопрос клиента из RAG:\n{rag_answer}\n---\n" + system_prompt
                 rag_messages = [{"role": "system", "content": rag_prompt}]
                 rag_messages.extend(messages[1:])
 
@@ -91,9 +89,14 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
                 try:
                     answer_llm = await get_answer_llm(rag_messages)
                     agent_message = answer_llm.get('Ответ_клиенту', '')
+
+                    print('\n--------Ответ ЛЛМ с учетом RAG----\n')
+                    pprint.pprint(answer_llm)
                 except Exception as e:
                     logger.error(f"❌ Ошибка получения ответа LLM с RAG: {e}")
                     return 'Ошибка получения ответа LLM с RAG'
+
+        
         
         # 9. Добавляем ответ ассистента в сессию
         if agent_message and agent_message.strip():

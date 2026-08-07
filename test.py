@@ -1,5 +1,5 @@
 
-from llm.prompts_v2 import system_prompt
+from llm.prompt import system_prompt
 from config import api_key, open_ai_model, base_url
 from openai import OpenAI
 import json

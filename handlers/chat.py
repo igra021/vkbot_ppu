@@ -5,6 +5,7 @@
 from vkbottle.bot import BotLabeler, Message
 from llm.chat_gpt import chat_gpt
 from loguru import logger
+import json
 
 chat_labeler = BotLabeler()
 chat_labeler.vbml_ignore_case = True
@@ -22,10 +23,21 @@ async def chat(message: Message):
         # Обработка текстового сообщения
         if message.text:
             result = await chat_gpt(user_id, message.text)
-        
-        # Если ответ пустой — подставляем дефолтное сообщение
-        if not result or not result.strip():
-            result = "Извините, я не смог обработать ваш запрос. Попробуйте переформулировать вопрос."
+            # result — это строка JSON от LLM
+            if result:
+                try:
+                    data = json.loads(result)
+                    response = data.get('response', '')
+                except json.JSONDecodeError:
+                    response = result  # fallback, если не JSON
+            else:
+                response = ''
+        else:
+            response = ''
+
+        # Если ответ пустой — дефолтное сообщение
+        if not response or not response.strip():
+            response = "Извините, я не смог обработать ваш запрос. Попробуйте переформулировать вопрос."
             logger.warning(f"⚠️ Пустой ответ для user_id={user_id}")
         
         # Обработка вложений (фото, видео)
@@ -39,11 +51,11 @@ async def chat(message: Message):
             attachments.append(f"video{video.owner_id}_{video.id}")
         
         if attachments:
-            result += "\n\n✅ Ваши фото и видео пересланы администратору."
+            response += "\n\n✅ Ваши фото и видео пересланы администратору."
             # Здесь код пересылки администратору
         
-        # ✅ Отправляем сообщение
-        await message.answer(result)
+        # ✅ Отправляем сообщение в бот
+        await message.answer(response)
         
     except Exception as e:
         logger.error(f"❌ Ошибка в обработчике: {e}")

@@ -2,105 +2,106 @@
 # функция вызова ЛЛМ, обработка ошибок
 # 
 
-from loguru import logger
-import asyncio, json
 from config import client, open_ai_model, temperature
-from openai import APIError, APIConnectionError, RateLimitError, AuthenticationError, BadRequestError
+import os, json, re
+from dotenv import load_dotenv
+from openai import OpenAI
+from prompt import system_prompt
+from llm.rag import RAGSystem
 
-async def get_answer_llm(messages, retry_count: int = 3, retry_delay: int = 2) -> str:
+load_dotenv()
+api_key = os.getenv('OPENAI_API_KEY')     
+base_url = 'https://api.proxyapi.ru/openai/v1'
+client = OpenAI(api_key=api_key, base_url=base_url)
+
+
+# ── TOOL DEFINITIONS ──────────────────────────────────────────────────────────
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "search_rag",
+            "description": "Поиск информации в базе знаний компании",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Поисковый запрос"}
+                },
+                "required": ["query"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "calculate_cost",
+            "description": "Рассчитать стоимость утепления на основе площади, материала и объекта",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "area": {"type": "integer", "description": "Площадь в кв.м."},
+                    "material": {"type": "string", "description": "Материал конструкции (по умолчанию 'дерево' для мансарды)"},
+                    "object_type": {"type": "string", "description": "Тип объекта: стены, пол, мансарда, фундамент, потолок"}
+                },
+                "required": ["area"]
+            }
+        }
+    }
+]
+
+
+# Maps tool name → Python function for dynamic dispatch in the loop below
+
+
+history = [
+    {"role": "system", "content": system_prompt}
+]
+
+# ── AGENT LOOP ────────────────────────────────────────────────────────────────
+def run_agent(messages: list) -> str:
     """
-    Отправляет запрос в LLM с обработкой ошибок и повторными попытками
-    
-    Args:
-        messages: Список сообщений для отправки
-        retry_count: Количество попыток при ошибке
-        retry_delay: Задержка между попытками (секунды)
-    
-    Returns:
-        dict: Ответ от LLM (словарь) или сообщение об ошибке
-    
-    Raises:
-        Exception: Если все попытки не удались
+    Args: history
     """
-    
-    for attempt in range(retry_count):
-        try:
-            logger.info(f"🔄 Попытка {attempt + 1}/{retry_count} запроса к LLM")
-            
-            response = await client.chat.completions.create(
-                model=open_ai_model,
-                messages=messages,
-                temperature=temperature,
-                response_format={"type": "json_object"},
-                timeout=60.0  # Таймаут 60 секунд
-            )
-            
-            # Проверяем, что ответ содержит данные
-            if not response or not response.choices:
-                raise ValueError("Пустой ответ от LLM")
-            
-            content = response.choices[0].message.content
-            
-            if not content or not content.strip():
-                raise ValueError("Пустое содержимое ответа")
-            else:
-                try:
-                    return json.loads(content)
-                except json.JSONDecodeError as e:
-                    logger.error(f"❌ LLM вернул не JSON: {content}")
-                    logger.error(f"❌ Ошибка: {e}")
-                    return "Ошибка в структуре ответа. Повторите ваш вопрос"
-            
-        except AuthenticationError as e:
-            logger.error(f"❌ Ошибка аутентификации OpenAI: {e}")
-            raise Exception("Неверный API-ключ OpenAI. Проверьте .env файл.")
-            
-        except RateLimitError as e:
-            logger.warning(f"⚠️ Превышен лимит запросов: {e}")
-            if attempt < retry_count - 1:
-                wait_time = retry_delay * (attempt + 1)  # Экспоненциальная задержка
-                logger.info(f"⏳ Ожидание {wait_time} секунд перед повторной попыткой...")
-                await asyncio.sleep(wait_time)
-                continue
-            else:
-                raise Exception("Превышен лимит запросов к OpenAI. Попробуйте позже.")
-                
-        except APIConnectionError as e:
-            logger.warning(f"⚠️ Ошибка соединения с OpenAI: {e}")
-            if attempt < retry_count - 1:
-                await asyncio.sleep(retry_delay)
-                continue
-            else:
-                raise Exception("Не удалось подключиться к OpenAI. Проверьте интернет-соединение.")
-                
-        except APIError as e:
-            logger.error(f"❌ Ошибка API OpenAI: {e}")
-            if attempt < retry_count - 1:
-                await asyncio.sleep(retry_delay)
-                continue
-            else:
-                raise Exception(f"Ошибка OpenAI: {str(e)}")
-                
-        except BadRequestError as e:
-            logger.error(f"❌ Неверный запрос к OpenAI: {e}")
-            # Это ошибка клиента (неправильный запрос) — повторять бесполезно
-            raise Exception(f"Неверный запрос к OpenAI: {str(e)}")
-            
-        except asyncio.TimeoutError:
-            logger.warning(f"⚠️ Таймаут запроса к OpenAI")
-            if attempt < retry_count - 1:
-                await asyncio.sleep(retry_delay)
-                continue
-            else:
-                raise Exception("Превышено время ожидания ответа от OpenAI.")
-                            
-        except Exception as e:
-            logger.error(f"❌ Неизвестная ошибка: {e}")
-            if attempt < retry_count - 1:
-                await asyncio.sleep(retry_delay)
-                continue
-            else:
-                raise Exception(f"Неизвестная ошибка при запросе к OpenAI: {str(e)}")
-    
-    # Если все попытки не удались
-    raise Exception(f"Не удалось получить ответ от OpenAI после {retry_count} попыток")
+    tool_dispatch = {"calculate_cost": RAGSystem.calculate_cost, "search_rag": RAGSystem.search_rag}
+
+    while True:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            tools=TOOLS,
+            tool_choice="auto",
+            temperature=0.3,
+            response_format={"type": "json_object"}
+        )
+
+        message = response.choices[0].message
+        # Добавляем полное сообщение ассистента в историю
+        messages.append(message.model_dump())
+
+        # Если нет вызовов инструментов — это финальный ответ
+        if not message.tool_calls:
+            return message.content
+
+        # Обрабатываем каждый вызов
+        for tool_call in message.tool_calls:
+            name = tool_call.function.name
+            args = json.loads(tool_call.function.arguments)
+            fn = tool_dispatch.get(name)
+            result = fn(**args) if fn else f"Unknown tool: {name}"
+
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": str(result),  # тоже приводим к строке
+            })
+        # Цикл повторится
+        
+
+
+# Запуск
+
+while True:
+    query = input("Клиент: ")
+    history.append({"role": "user", "content": query})
+    agent_message = run_agent(history)
+    print("ЛЛМ: ", agent_message)

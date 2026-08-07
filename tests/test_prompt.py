@@ -9,7 +9,7 @@ import json
 import pytest
 from loguru import logger
 from config_test import client, MODEL
-from llm.prompts_v2 import system_prompt
+from llm.prompt import system_prompt
 
 
 class TestPromptWithLLMClient:

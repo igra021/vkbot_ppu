@@ -77,7 +77,7 @@ async def get_history_from_db(
             return history
 
 
-async def clear_history(user_id: int):
+async def clear_history_db(user_id: int):
     """Очищает историю диалога пользователя (асинхронно)"""
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("DELETE FROM conversations WHERE user_id = ?", (user_id,))

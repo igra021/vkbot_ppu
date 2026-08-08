@@ -5,14 +5,19 @@
 from loguru import logger
 from db.database import save_message_to_db, get_history_from_db
 from session_manager import session_manager
-import pprint
-
 from config import DEBUG, client, open_ai_model, temperature
-import json, re
-from .prompt import system_prompt
-from llm.rag import RAGSystem
+import json, re, os
+
 
 rag = None
+
+
+def load_prompt(file_path: str, file_name: str) -> str:
+    """Загружает промпт из XML файла"""
+
+    with open(os.path.join(file_path, file_name), 'r', encoding='utf-8') as f:
+        return f.read()
+
 
 def save_to_file(text, messages):
     """Записывает поясняющий текст text и сообщения messages в файл messages.txt"""
@@ -82,6 +87,9 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
             }
         }
     ]
+
+    # Загрузка промпта
+    system_prompt = load_prompt('llm', 'system_prompt.xml')
 
     # добавил системный промт к истории из сессии клиента
     messages = [

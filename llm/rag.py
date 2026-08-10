@@ -58,6 +58,9 @@ class RAGSystem:
 
     def search_rag(self, query: str, k: int = 2) -> str:
         """Поиск в RAG"""
+        
+        logger.debug(f"⚠️ RAG запрос: '{query}'")
+
         # Проверка, что база данных инициализирована
         if self.db is None:
             logger.warning(f"⚠️ RAG не инициализирован. Запрос: '{query}'")
@@ -71,11 +74,11 @@ class RAGSystem:
         results = []
         for doc in docs:
             answer = doc.metadata.get("answer", doc.page_content)
+            logger.debug(f"✅ RAG ответ: {answer}")
             results.append(str(answer))
 
         full_response = "\n---\n".join(results)
-        logger.debug(f"✅ RAG Запрос: '{query}' → Найдено {len(docs)} документов")
-        logger.debug(f"✅ RAG Первый ответ (первые 300 символов):\n{full_response[:300]}...")
+        
         return full_response
 
 
@@ -84,12 +87,12 @@ class RAGSystem:
 
         price_query = f"цена утепления пенополиуретаном за квадратный метр для {object_type} из {material}"
         price_answer = self.search_rag(price_query, k=1)
-        if "не найдена" in price_answer.lower() or not price_answer.strip():
-            price_query = f"цена утепления пенополиуретаном за квадратный метр для {object_type}"
-            price_answer = self.search_rag(price_query, k=1)
+        #if "не найдена" in price_answer.lower() or not price_answer.strip():
+            #price_query = f"цена утепления пенополиуретаном за квадратный метр для {object_type}"
+            #price_answer = self.search_rag(price_query, k=1)
 
         numbers = re.findall(r'\d+', price_answer.replace(',', ''))
-        price_per_m2 = float(numbers[0]) if numbers else 1500.0
+        price_per_m2 = float(numbers[0])
 
         total = area * price_per_m2
         logger.debug(f"RAG Цена за м²: {price_per_m2} руб, Итого: {total} руб")

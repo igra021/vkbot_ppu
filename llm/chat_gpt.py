@@ -75,7 +75,7 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
             "type": "function",
             "function": {
                 "name": "calculate_cost",
-                "description": "Рассчитать стоимость утепления на основе площади, материала и объекта",
+                "description": "Рассчитать стоимость утепления на основе площади, материалаz и объекта",
                 "parameters": {
                     "type": "object",
                     "properties": {

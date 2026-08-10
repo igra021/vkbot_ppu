@@ -7,6 +7,7 @@ from db.database import save_message_to_db, get_history_from_db
 from session_manager import session_manager
 from config import DEBUG, client, open_ai_model, temperature
 import json, re, os
+from llm.prompt import system_prompt
 
 
 rag = None
@@ -88,8 +89,8 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
         }
     ]
 
-    # Загрузка промпта
-    system_prompt = load_prompt('llm', 'system_prompt.xml')
+    # Загрузка промпта XML
+    # system_prompt = load_prompt('llm', 'system_prompt.xml')
 
     # добавил системный промт к истории из сессии клиента
     messages = [

@@ -75,15 +75,15 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
             "type": "function",
             "function": {
                 "name": "calculate_cost",
-                "description": "Рассчитать стоимость утепления на основе площади, материалаz и объекта",
+                "description": "Рассчитать стоимость утепления на основе материала, объекта, площади",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "area": {"type": "integer", "description": "Площадь в кв.м."},
                         "material": {"type": "string", "description": "Материал конструкции (по умолчанию 'дерево' для мансарды)"},
-                        "object_type": {"type": "string", "description": "Тип объекта: стены, пол, мансарда, фундамент, потолок"}
+                        "object_type": {"type": "string", "description": "Тип объекта: стены, пол, мансарда, фундамент, потолок"},
+                        "area": {"type": "integer", "description": "Площадь в кв.м."}
                     },
-                    "required": ["area"]
+                    "required": ["material","object_type"]
                 }
             }
         }

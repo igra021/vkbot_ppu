@@ -94,7 +94,7 @@ class RAGSystem:
         Returns:
             str: Толщина (например, "3 см" или "5 см")
         """
-        print('1')
+
         # Формируем запрос для поиска толщины
         query = f"толщина утепления ППУ для {object_type} из {material}"
         logger.info(f"📏 RAG ПОИСК ТОЛЩИНЫ: '{query}'")
@@ -131,7 +131,6 @@ class RAGSystem:
             float: Цена за 1 кв.м.
         """
 
-        print('2')
         # Формируем запрос для поиска цены по толщине
         query = f"цена утепления ППУ {thickness}"
         logger.info(f"💰 RAG ПОИСК ЦЕНЫ ПО ТОЛЩИНЕ: '{query}'")

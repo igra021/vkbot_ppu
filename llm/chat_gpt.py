@@ -19,7 +19,7 @@ def load_prompt(file_path: str, file_name: str) -> str:
     with open(os.path.join(file_path, file_name), 'r', encoding='utf-8') as f:
         return f.read()
 
-
+# отладка
 def save_to_file(text, messages):
     """Записывает поясняющий текст text и сообщения messages в файл messages.txt"""
 
@@ -144,6 +144,7 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
 
         # 9. Добавляем ответ ассистента в сессию
         session_user.add_message("assistant", message.content)
+        
         
         # 10. Сохраняем в БД (только если сессия "грязная")
         if session_user.is_dirty:

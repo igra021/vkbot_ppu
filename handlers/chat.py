@@ -22,12 +22,15 @@ async def chat(message: Message):
         
         # Обработка текстового сообщения
         if message.text:
+
+            # result — это строка JSON, ответ от LLM
             result = await chat_gpt(user_id, message.text)
-            # result — это строка JSON от LLM
             if result:
                 try:
                     data = json.loads(result)
                     response = data.get('response', '')
+                    video_link = data.get('video', '')
+
                 except json.JSONDecodeError:
                     response = result  # fallback, если не JSON
             else:
@@ -55,6 +58,9 @@ async def chat(message: Message):
             # Здесь код пересылки администратору
         
         # ✅ Отправляем сообщение в бот
+        await message.answer(response)
+
+        # ✅ Отправляем видео в бот
         await message.answer(response)
         
     except Exception as e:

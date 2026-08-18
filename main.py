@@ -5,13 +5,13 @@ import asyncio
 import signal, os
 from loguru import logger
 from vkbottle import VKAPIError
-from config import labeler, rag_file, DEBUG
+from init.config import labeler, rag_file, DEBUG
 from handlers.admin import admin_labeler
 from handlers.chat import chat_labeler
-from create_bot import create_bot
+from init.create_bot import create_bot
 from llm.rag import RAGSystem
 from db.database import init_db
-from log_setup import log_setup
+from init.log_setup import log_setup
 import gc
 
 def signal_handler(signum, frame):

@@ -6,7 +6,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 import pandas as pd, re
 from loguru import logger
-from config import api_key, embeddings_model, base_url
+from init.config import api_key, embeddings_model, base_url
 
 class RAGSystem:
     """

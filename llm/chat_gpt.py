@@ -4,8 +4,8 @@
 
 from loguru import logger
 from db.database import save_message_to_db, get_history_from_db
-from session_manager import session_manager
-from config import DEBUG, client, open_ai_model, temperature
+from init.session_manager import session_manager
+from init.config import DEBUG, client, open_ai_model, temperature
 import json, re, os
 from llm.prompt import system_prompt
 

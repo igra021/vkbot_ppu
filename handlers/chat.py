@@ -4,6 +4,8 @@
 
 from vkbottle.bot import BotLabeler, Message
 from llm.chat_gpt import chat_gpt
+from service.is_telephone import is_telephone
+from service.text_cleaner import clean_text
 from loguru import logger
 import json
 
@@ -22,7 +24,12 @@ async def chat(message: Message):
         
         # Обработка текстового сообщения
         if message.text:
-            result = await chat_gpt(user_id, message.text)
+            # очистка сообщения клиента от мусора
+            new_message = clean_text(message.text)
+            # проверка на номер телефона в сообщении клиента
+            new_message = is_telephone(new_message)
+
+            result = await chat_gpt(user_id, new_message)
             # result — это строка JSON от LLM
             if result:
                 try:

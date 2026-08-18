@@ -1,9 +1,9 @@
-# logging.py
+# service\log_setup.py
 
 import os, sys
 from loguru import logger
 from datetime import datetime
-from config import DEBUG
+from init.config import DEBUG
 
 
 # Логирование

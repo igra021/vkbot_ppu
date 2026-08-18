@@ -3,8 +3,8 @@
 
 from vkbottle.bot import BotLabeler, Message, rules
 from db.database import clear_history_db
-from config import vk_admin
-from session_manager import session_manager  # ✅ Импортируем менеджер сессий
+from init.config import vk_admin
+from init.session_manager import session_manager  # ✅ Импортируем менеджер сессий
 
 admin_labeler = BotLabeler()
 admin_labeler.auto_rules = [rules.FromPeerRule(vk_admin)]

@@ -4,10 +4,10 @@
 from vkbottle.api import API
 from vkbottle import Bot
 from vkbottle.http import AiohttpClient
-from config import labeler, DEBUG
+from init.config import labeler, DEBUG
 #, state_dispenser 
 import aiohttp
-from config import proxy, vk_token
+from init.config import proxy, vk_token
 
 
 def create_bot():

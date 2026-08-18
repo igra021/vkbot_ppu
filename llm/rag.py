@@ -1,4 +1,4 @@
-# llm\rag.py 
+# llm/rag.py
 # функции работы с RAG
 
 from langchain_openai import OpenAIEmbeddings
@@ -56,10 +56,10 @@ class RAGSystem:
             raise
 
 
-    def search_rag(self, query: str, k: int = 2) -> str:
+    def search_rag(self, query: str, k: int = 1) -> str:
         """Поиск в RAG"""
         
-        logger.debug(f"⚠️ RAG запрос: '{query}'")
+        logger.info(f"🔍 RAG ЗАПРОС: '{query}' (k={k})")
 
         # Проверка, что база данных инициализирована
         if self.db is None:
@@ -78,29 +78,117 @@ class RAGSystem:
             results.append(str(answer))
 
         full_response = "\n---\n".join(results)
+        logger.info(f"✅ RAG РЕЗУЛЬТАТ: найдено {len(docs)} ответов")
         
         return full_response
 
 
-    def calculate_cost(self, area: int, material: str = "дерево", object_type: str = "мансарда") -> float:
-        """Ищем цену за 1 кв.м., делаем расчет по площади"""
+    def get_thickness(self, object_type: str, material: str) -> str:
+        """
+        Находит рекомендуемую толщину ППУ для объекта и материала.
+        
+        Args:
+            object_type: Тип объекта (стены, пол, мансарда, ...)
+            material: Материал конструкции (брус, пеноблок, ...)
+        
+        Returns:
+            str: Толщина (например, "3 см" или "5 см")
+        """
 
-        price_query = f"цена утепления пенополиуретаном за квадратный метр для {object_type} из {material}"
-        price_answer = self.search_rag(price_query, k=1)
-        #if "не найдена" in price_answer.lower() or not price_answer.strip():
-            #price_query = f"цена утепления пенополиуретаном за квадратный метр для {object_type}"
-            #price_answer = self.search_rag(price_query, k=1)
+        # Формируем запрос для поиска толщины
+        query = f"толщина утепления ППУ для {object_type} из {material}"
+        logger.info(f"📏 RAG ПОИСК ТОЛЩИНЫ: '{query}'")
+        result = self.search_rag(query, k=1)
+        
+        if result:
+            logger.info(f"✅ RAG НАЙДЕНА ТОЛЩИНА: {result}")
+            return result
+        
+        # Если не нашли, пробуем без объекта
+        if material:
+            query2 = f"толщина утепления ППУ для {material}"
+            logger.info(f"📏 RAG ПОИСК ТОЛЩИНЫ (повторный): '{query2}'")
+            result2 = self.search_rag(query2, k=1)
+            if result2:
+                logger.info(f"✅ RAG НАЙДЕНА ТОЛЩИНА: {result2}")
+                return result2
+        
+        # Если ничего не найдено — возвращаем значение по умолчанию
+        default_thickness = "минимальная толщина 3 см плотность 30 кг" if object_type != "мансарда" else "минимальная толщина 7 см плотность 30 кг"
+        logger.warning(f"⚠️ ТОЛЩИНА НЕ НАЙДЕНА, используем: {default_thickness}")
+        return default_thickness
 
-        numbers = re.findall(r'\d+', price_answer.replace(',', ''))
-        price_per_m2 = float(numbers[0])
 
-        total = area * price_per_m2
-        logger.debug(f"RAG Цена за м²: {price_per_m2} руб, Итого: {total} руб")
-        return total              
+    def get_price_by_thickness(self, thickness: str) -> float:
+
+        """
+        Находит цену за 1 кв.м. по толщине.
+        
+        Args:
+            thickness: Толщина (например, "3 см")
+        
+        Returns:
+            float: Цена за 1 кв.м.
+        """
+
+        # Формируем запрос для поиска цены по толщине
+        query = f"цена утепления ППУ {thickness}"
+        logger.info(f"💰 RAG ПОИСК ЦЕНЫ ПО ТОЛЩИНЕ: '{query}'")
+        
+        result = self.search_rag(query, k=1)
+        
+        # Пытаемся извлечь число из ответа
+        numbers = re.findall(r'(\d+)\s*р', result)
+        if numbers:
+            price = float(numbers[0])
+            logger.info(f"✅ RAG НАЙДЕНА ЦЕНА: {price} руб/м²")
+            return price
+        
+        # Если не нашли, пробуем найти любое число в ответе
+        numbers2 = re.findall(r'(\d+)', result.replace(',', ''))
+        if numbers2:
+            price = float(numbers2[0])
+            logger.info(f"✅ RAG НАЙДЕНА ЦЕНА (число): {price} руб/м²")
+            return price
+        
+        # Если ничего не найдено — возвращаем значение по умолчанию
+        logger.warning(f"⚠️ RAG ЦЕНА НЕ НАЙДЕНА для толщины {thickness}, используем 1500 руб/м²")
+        return 1500.0
+
+
+    def calculate_cost(self, material: str, object_type: str, area: int=0) -> float:
+        """
+        Рассчитывает стоимость утепления:
+        1. Находит толщину для объекта и материала
+        2. По толщине находит цену за 1 кв.м.
+        3. Умножает на площадь
+        
+        Args:
+            area: Площадь в кв.м.
+            material: Материал конструкции (по умолчанию 'дерево')
+            object_type: Тип объекта (по умолчанию 'мансарда')
+        
+        Returns:
+            float: Общая стоимость
+        """
+        logger.info(f"💰 CALCULATE_COST: area={area}, material='{material}', object_type='{object_type}'")
+        
+        # ШАГ 1: Находим толщину
+        thickness = self.get_thickness(object_type, material)
+        logger.debug(f"📏 ИСПОЛЬЗУЕМАЯ ТОЛЩИНА: {thickness}")
+        
+        # ШАГ 2: По толщине находим цену за 1 кв.м.
+        price_per_m2 = self.get_price_by_thickness(thickness)
+        logger.debug(f"💰 ЦЕНА ЗА М²: {price_per_m2} руб")
+        
+        # ШАГ 3: Рассчитываем общую стоимость
+        if area:
+            total = area * price_per_m2
+            return total
+        else:
+            return price_per_m2
 
 
     def is_ready(self) -> bool:
         """Проверяет, готова ли RAG к работе"""
-        return self.db is not None   
-        
-        
+        return self.db is not None

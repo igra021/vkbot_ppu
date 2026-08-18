@@ -19,7 +19,7 @@ def load_prompt(file_path: str, file_name: str) -> str:
     with open(os.path.join(file_path, file_name), 'r', encoding='utf-8') as f:
         return f.read()
 
-
+# отладка
 def save_to_file(text, messages):
     """Записывает поясняющий текст text и сообщения messages в файл messages.txt"""
 
@@ -75,15 +75,15 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
             "type": "function",
             "function": {
                 "name": "calculate_cost",
-                "description": "Рассчитать стоимость утепления на основе площади, материалаz и объекта",
+                "description": "Найти цену утепления за 1 кв.м. Рассчитать стоимость утепления на основе материала, объекта, площади",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "area": {"type": "integer", "description": "Площадь в кв.м."},
                         "material": {"type": "string", "description": "Материал конструкции (по умолчанию 'дерево' для мансарды)"},
-                        "object_type": {"type": "string", "description": "Тип объекта: стены, пол, мансарда, фундамент, потолок"}
+                        "object_type": {"type": "string", "description": "Тип объекта: стены, пол, мансарда, фундамент, потолок"},
+                        "area": {"type": "integer", "description": "Площадь в кв.м."}
                     },
-                    "required": ["area"]
+                    "required": ["material","object_type"]
                 }
             }
         }
@@ -144,6 +144,7 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
 
         # 9. Добавляем ответ ассистента в сессию
         session_user.add_message("assistant", message.content)
+        
         
         # 10. Сохраняем в БД (только если сессия "грязная")
         if session_user.is_dirty:

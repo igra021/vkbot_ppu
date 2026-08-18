@@ -35,6 +35,8 @@ async def chat(message: Message):
                 try:
                     data = json.loads(result)
                     response = data.get('response', '')
+                    video_link = data.get('video', '')
+
                 except json.JSONDecodeError:
                     response = result  # fallback, если не JSON
             else:
@@ -63,6 +65,11 @@ async def chat(message: Message):
         
         # ✅ Отправляем сообщение в бот
         await message.answer(response)
+
+
+        # ✅ Отправляем видео в бот
+        if video_link:    
+            await message.answer("Посмотрите видео по вашей ситуации: ", attachment=video_link)
         
     except Exception as e:
         logger.error(f"❌ Ошибка в обработчике: {e}")

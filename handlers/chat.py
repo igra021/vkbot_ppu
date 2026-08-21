@@ -14,25 +14,45 @@ chat_labeler = BotLabeler()
 chat_labeler.vbml_ignore_case = True
 
 
-async def send_to_admin(vk_admin, user_id, attachments, message):
-    await message.ctx_api.messages.send(
-    peer_id=vk_admin,
-    message=f"Вложения от пользователя {user_id}:\n{attachments}",
-    random_id=0
-    )
+async def send_to_admin(ctx_api, vk_admin, user_id, text, attachment=None):
+    """Отправляет сообщения админу
+    Args:
+        ctx_api: API для отправки (message.ctx_api)
+        vk_admin: id админа
+        user_id: ID пользователя
+        text: Текст сообщения
+        attachment: Вложение (опционально)
+    """
+    try:
+        params = {
+            "peer_id": vk_admin,
+            "message": f"📩 Сообщение от пользователя {user_id}:\n{text}",
+            "random_id": 0
+        }
+
+        if attachment:
+            params["attachment"] = attachment
+        
+        await ctx_api.messages.send(**params)
+        logger.debug(f"✅ Уведомление отправлено админу для user_id={user_id}")
+        
+    except Exception as e:
+        logger.error(f"❌ Ошибка отправки админу: {e}")
 
 
 @chat_labeler.message()
 async def chat(message: Message):
     video_link = ''
     response = ''
-    attachments = []
+    attachments = False
+    video = []
+    photo = []
 
     try:
         user_id = message.from_id  # ✅ ID пользователя
         result = ''
         
-        # Обработка текстового сообщения
+        # ✅ Обработка текстового сообщения
         if message.text:
             # очистка сообщения клиента от мусора
             new_message = clean_text(message.text)
@@ -40,9 +60,9 @@ async def chat(message: Message):
             new_message, telephone = is_telephone(new_message)
             if telephone.lstrip():
                 # отправить админу телефон
-                await send_to_admin(vk_admin, user_id, 'телефон: ' + telephone, message)
+                await send_to_admin(message.ctx_api, vk_admin, user_id, 'телефон: ' + telephone)
 
-            # обращение к ЛЛМ
+            # ✅ обращение к ЛЛМ
             if new_message:
                 result = await chat_gpt(user_id, new_message)
             
@@ -60,27 +80,29 @@ async def chat(message: Message):
             response = ''
 
         
-        # Обработка вложений (фото, видео)
+        # ✅ Обработка вложений (фото, видео)
+
         photos = [att.photo for att in message.attachments if att.photo]
         videos = [att.video for att in message.attachments if att.video]
         
         for photo in photos:
-            attachments.append(f"photo{photo.owner_id}_{photo.id}")
+            # отправить админу фото
+            attachments = True
+            await send_to_admin(message.ctx_api, vk_admin, user_id, 'фото', f"photo{photo.owner_id}_{photo.id}")
+
         for video in videos:
-            attachments.append(f"video{video.owner_id}_{video.id}")
+            # отправить админу фото
+            attachments = True
+            await send_to_admin(message.ctx_api, vk_admin, user_id, 'видео', f"video{video.owner_id}_{video.id}")
         
-        if attachments:
+        if video or photo:
             response += "\n\n✅ Ваши фото и видео пересланы администратору."
-
-            # ✅ Отправка сообщения администратору, ошибка - в виде списка, а не в виде объектов
-            await send_to_admin(vk_admin, user_id, attachments, message)
-
-        
-        # ✅ Отправляем сообщение в бот
+       
+        # ✅ Отправляем сообщение клиенту
         await message.answer(response)
 
 
-        # ✅ Отправляем видео в бот
+        # ✅ Отправляем видео клиенту
         if video_link:    
             await message.answer("Посмотрите видео по вашей ситуации: ", attachment=video_link)
         

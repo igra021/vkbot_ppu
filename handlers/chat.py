@@ -24,9 +24,10 @@ async def send_to_admin(ctx_api, vk_admin, user_id, text, attachment=None):
         attachment: Вложение (опционально)
     """
     try:
+        chat_link = f"https://vk.com/im?peer={user_id}"
         params = {
             "peer_id": vk_admin,
-            "message": f"📩 Сообщение от пользователя {user_id}:\n{text}",
+            "message": f"📩 Сообщение от пользователя {chat_link}:\n{text}",
             "random_id": 0
         }
 
@@ -71,6 +72,11 @@ async def chat(message: Message):
                     data = json.loads(result)
                     response = data.get('response', '')
                     video_link = data.get('video', '')
+
+                    # клиент дал согласие на телефон или переписку
+                    if data.get("contact_acquired", False):
+                        # отправить сообщение админу
+                        await send_to_admin(message.ctx_api, vk_admin, user_id, '✅ Клиент дал согласие на переписку или номер телефона.')
 
                 except json.JSONDecodeError:
                     response = result  # fallback, если не JSON

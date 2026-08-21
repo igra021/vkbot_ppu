@@ -115,7 +115,94 @@ async def chat_gpt(user_id: int, user_message: str) -> str:
                 tools=TOOLS,
                 tool_choice="auto",
                 temperature=temperature,
-                response_format={"type": "json_object"}
+                # response_format={"type": "json_object"}
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "sales_assistant_response",
+                        "strict": True,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "stage": {
+                                    "type": "string",
+                                    "enum": ["сбор_информации", "презентация", "обработка_возражений", "расчёт", "завершение"],
+                                    "description": "Текущий этап воронки продаж"
+                                },
+                                "thought": {
+                                    "type": "string",
+                                    "description": "Внутренний черновик агента"
+                                },
+                                "selected_path": {
+                                    "type": "string",
+                                    "enum": ["финансовый", "комфорт", "технологический"],
+                                    "description": "Выбранный путь мотивации клиента"
+                                },
+                                "action": {
+                                    "type": "object",
+                                    "properties": {
+                                        "тип": {
+                                            "type": "string",
+                                            "enum": ["search_rag", "calculate_cost", "нет"]
+                                        },
+                                        "параметры": {
+                                            "type": "object",
+                                            "properties": {
+                                                "query": {
+                                                    "anyOf": [
+                                                        {"type": "string"},
+                                                        {"type": "null"}
+                                                    ],
+                                                    "description": "Поисковый запрос для RAG"
+                                                },
+                                                "area": {
+                                                    "anyOf": [
+                                                        {"type": "integer"},
+                                                        {"type": "null"}
+                                                    ],
+                                                    "description": "Площадь в кв.м. для расчёта"
+                                                },
+                                                "material": {
+                                                    "anyOf": [
+                                                        {"type": "string"},
+                                                        {"type": "null"}
+                                                    ],
+                                                    "description": "Материал конструкции"
+                                                }
+                                            },
+                                            "additionalProperties": False,
+                                            "required": ["query", "area", "material"]
+                                        }
+                                    },
+                                    "additionalProperties": False,
+                                    "required": ["тип", "параметры"]
+                                },
+                                "response": {
+                                    "type": "string",
+                                    "description": "Текст ответа клиенту (разбитый на абзацы)"
+                                },
+                                "contact_acquired": {
+                                    "type": "boolean",
+                                    "description": "Получен ли контакт от клиента"
+                                },
+                                "contact_notes": {
+                                    "type": "string",
+                                    "description": "Заметка о контакте (без номера телефона)"
+                                }
+                            },
+                            "required": [
+                                "stage",
+                                "thought",
+                                "selected_path",
+                                "action",
+                                "response",
+                                "contact_acquired",
+                                "contact_notes"
+                            ],
+                            "additionalProperties": False
+                        }
+                    }
+                }
             )
 
             message = response.choices[0].message
